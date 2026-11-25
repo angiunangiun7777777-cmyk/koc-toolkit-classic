@@ -1,0 +1,3237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube KOC 挖掘工具（韩区手游向）</title>
+<style>
+  /* ── v6 明亮温暖金融仪表盘配色（参考 Fintech Dashboard 设计） ──
+   * 页面底色 #EEF0F4 极浅暖灰 / 卡片纯白 #FFFFFF / 主文字 #1A1D26 深炭
+   * 多色卡片系：珊瑚红 #F06565（主操作）+ 金黄 #F5C563 + 珊瑚粉 #FA8072 + 亮绿 #90C955 + 暖杏 #FDE8CD
+   * 风格：明亮、大量留白、柔和圆角、轻阴影、温暖调性
+   */
+  :root {
+    --bg: #EEF0F4;
+    --bg-soft: #E9ECF1;
+    --card: #FFFFFF;
+    --card-alt: #FAFBFC;
+    --border: #E4E7ED;
+    --border-light: #EEF0F5;
+    --text: #1A1D26;
+    --text-soft: #4B5563;
+    --muted: #8E95A3;
+    --brand: #F06565;
+    --brand-dark: #E04545;
+    --brand-soft: #FFF0F1;
+    --accent: #90C955;
+    --accent-dark: #7AB83D;
+    --accent-gold: #F5C563;
+    --accent-coral: #FA8072;
+    --accent-peach: #FDE8CD;
+    --accent-warm: #FEF6E8;
+    --accent-pink: #FFF0F2;
+    --danger: #EF4444;
+    --warn: #F59E0B;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --shadow: 0 1px 10px rgba(26,29,38,.04), 0 1px 3px rgba(26,29,38,.03);
+    --shadow-lg: 0 6px 24px rgba(26,29,38,.07), 0 2px 6px rgba(26,29,38,.04);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, #EEF0F4 0%, #F2F4F8 40%, #EEF0F4 100%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 14px;
+    line-height: 1.65;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 24px 100px; }
+  
+  /* ── Header & Changelog ── */
+  header { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 26px 18px; margin-bottom: 20px; border: 1px solid var(--border-light); }
+  header h1 { font-size: 21px; margin: 0 0 5px; letter-spacing: -0.3px; color: var(--text); }
+  header p { color: var(--muted); margin: 0; font-size: 13.5px; }
+  .changelog-toggle {
+    display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+    color: var(--brand); font-size: 13px; font-weight: 600; margin-top: 10px;
+    transition: color .15s; user-select: none;
+  }
+  .changelog-toggle:hover { color: var(--brand-dark); }
+  .changelog-toggle .arrow { transition: transform .2s; font-size: 11px; }
+  .changelog-toggle.open .arrow { transform: rotate(90deg); }
+  .changelog-panel {
+    display: none; margin-top: 14px; padding-top: 14px;
+    border-top: 1px dashed var(--border);
+  }
+  .changelog-panel.open { display: block; }
+  .changelog-item { 
+    padding: 10px 14px; margin-bottom: 8px; border-radius: var(--radius-sm);
+    background: var(--bg-soft); border: 1px solid var(--border-light);
+    font-size: 13px; line-height: 1.6;
+  }
+  .changelog-item .date { font-weight: 700; color: var(--text); }
+  .changelog-item .desc { color: var(--text-soft); margin-top: 3px; }
+
+  /* ── Banner（浅暖风格，匹配参考图亮色调） ── */
+  .banner {
+    background: linear-gradient(135deg, #FFF8F0 0%, #FFF0F2 50%, #F0FFF4 100%);
+    border: 1px solid var(--border-light); border-radius: var(--radius-sm);
+    padding: 13px 18px; color: #5C4A3D; font-size: 13px; margin-bottom: 20px;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border-light); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 22px 24px; margin-bottom: 20px;
+    transition: box-shadow .2s;
+  }
+  .card:hover { box-shadow: var(--shadow-lg); }
+  .card h2 { font-size: 15.5px; margin: 0 0 3px; letter-spacing: -0.2px; color: var(--text); }
+  .card .sub { color: var(--muted); font-size: 13px; margin: 0 0 16px; line-height: 1.55; }
+  label.fld { display: block; font-weight: 600; font-size: 13px; margin: 13px 0 6px; color: var(--text-soft); }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch; }
+  .row > .col { 
+    flex: 1 1 180px; min-width: 160px; 
+    background: var(--card-alt); border: 1px solid var(--border-light); 
+    border-radius: var(--radius-sm); padding: 14px 16px; box-shadow: var(--shadow);
+  }
+  .row > .col .fld { margin-top: 0; }
+  input[type=text], input[type=number], select, textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 9px;
+    font-size: 14px; font-family: inherit; background: #fff; color: var(--text);
+    height: 40px; box-sizing: border-box; transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, select:focus, textarea:focus { 
+    outline: none; border-color: var(--brand); 
+    box-shadow: 0 0 0 3px rgba(240,101,101,.10); 
+  }
+  input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.7; }
+  textarea { min-height: 76px; resize: vertical; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    border: 1px solid var(--border); background: #fff; border-radius: 999px; padding: 5px 14px;
+    font-size: 13px; cursor: pointer; user-select: none; color: var(--text-soft);
+    transition: all .15s;
+  }
+  .chip:hover { border-color: var(--brand); color: var(--brand); }
+  .chip.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .pack-label { font-weight: 600; font-size: 13px; margin: 10px 0 7px; color: var(--muted); }
+
+  /* ── 按钮系统（珊瑚红主色，匹配参考图侧栏图标色） ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 9px;
+    padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+    background: var(--brand); color: #fff; transition: all .18s;
+    box-shadow: 0 1px 4px rgba(240,101,101,.20);
+  }
+  .btn:hover { background: var(--brand-dark); box-shadow: 0 2px 8px rgba(240,101,101,.30); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { background: #d8dde4; cursor: not-allowed; box-shadow: none; }
+  .btn.ghost { background: var(--bg-soft); color: var(--text-soft); box-shadow: none; border: 1px solid var(--border); }
+  .btn.ghost:hover { background: var(--border-light); color: var(--text); transform: none; }
+  .btn.small { padding: 5px 13px; font-size: 12.5px; border-radius: 7px; }
+  /* 绿色主操作按钮 — 匹配参考图 USDT 卡的亮绿 */
+  .btn.green { 
+    background: var(--accent); color: #1a3010; 
+    box-shadow: 0 1px 6px rgba(144,201,85,.30); 
+  }
+  .btn.green:hover { background: var(--accent-dark); box-shadow: 0 2px 10px rgba(144,201,85,.40); }
+  .keyrow { display: flex; gap: 10px; align-items: center; }
+  .keyrow input { flex: 1; }
+  .hint { color: var(--muted); font-size: 12.5px; margin-top: 6px; line-height: 1.5; }
+  .progressbar { height: 8px; background: var(--border-light); border-radius: 999px; overflow: hidden; margin: 10px 0 6px; }
+  /* 进度条渐变：金黄→亮绿，匹配参考图图表配色 */
+  .progressbar > div { height: 100%; background: linear-gradient(90deg, var(--accent-gold), var(--accent)); width: 0; transition: width .3s; border-radius: 999px; }
+  .quota { font-size: 13px; color: var(--muted); }
+
+  /* ── 终端日志（极浅灰底，保持明亮风格） ── */
+  .log {
+    background: #F7F8FA; color: #4B5563; border-radius: var(--radius-sm); padding: 14px 16px;
+    font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12px; max-height: 280px;
+    overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-top: 10px;
+    box-shadow: inset 0 1px 4px rgba(0,0,0,.04), 0 1px 0 rgba(255,255,255,.8) inset;
+    border: 1px solid var(--border-light);
+  }
+  .log .ok { color: #22A06B; }
+  .log .err { color: #E05252; }
+  .log .info { color: #4A90D9; }
+  .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border-light); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 1080px; }
+  th, td { border-bottom: 1px solid var(--border-light); padding: 9px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--card-alt); font-size: 12px; color: var(--muted); position: sticky; top: 0; white-space: nowrap; font-weight: 600; }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: var(--brand); }
+  th .arr { color: var(--brand); }
+  td.num { text-align: right; white-space: nowrap; }
+  tr.selected { background: var(--brand-soft); }
+  tr:hover { background: rgba(238,240,244,.6); }
+  .ch-link { color: var(--brand); text-decoration: none; font-weight: 600; }
+  .ch-link:hover { text-decoration: underline; }
+
+  /* ── 标签系统（多色系，匹配参考图四色卡） ── */
+  .tag { display: inline-block; background: var(--bg-soft); color: var(--text-soft); border-radius: 5px; padding: 2px 8px; font-size: 12px; margin: 1px 2px 1px 0; }
+  .tag.warn { background: var(--accent-warm); color: #8a6a20; }
+  .tag.bad { background: var(--accent-pink); color: #B54A4A; }
+  .tag.good { background: #E8F8EB; color: #2D7A3D; }
+  .tag.anime { background: #F5EEFC; color: #7A4AA0; }
+  /* 地区置信度标签：高=绿 中=琥珀 待确认=灰 */
+  .conf { display: inline-block; border-radius: 5px; padding: 2px 8px; font-size: 12px; cursor: help; white-space: nowrap; }
+  .conf-high { background: #E8F8EB; color: #2D7A3D; }
+  .conf-mid { background: var(--accent-warm); color: #8a6a20; }
+  .conf-unk { background: var(--bg-soft); color: #9aa0a6; }
+  .email { color: var(--brand); font-size: 12px; word-break: break-all; }
+  .toolbar { display: flex; gap: 10px; align-items: center; margin: 14px 0 10px; flex-wrap: wrap; }
+  .steps { border-left: 3px solid var(--border); padding-left: 14px; margin-left: 4px; }
+  .step-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+  .step-num { 
+    width: 24px; height: 24px; border-radius: 50%; background: var(--bg-soft); color: var(--muted); 
+    display: inline-flex; align-items: center; justify-content: center; font-size: 12px; 
+    font-weight: 700; flex-shrink: 0; border: 1px solid var(--border-light);
+  }
+  .step-num.done { background: var(--accent); color: #1a3010; border-color: var(--accent); }
+  .step-desc { color: var(--muted); font-size: 13px; }
+  .hidden { display: none !important; }
+  .muted { color: var(--muted); }
+  .stat-badge { display: inline-block; margin-right: 18px; font-size: 13px; }
+  .stat-badge b { font-size: 17px; color: var(--text); }
+  .pack-section { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border); }
+  .pack-section .pack-label { display: flex; justify-content: space-between; align-items: center; }
+  .pack-section .pack-actions { display: flex; gap: 6px; }
+  .chip.add { background: #E8F8EB; color: #2D7A3D; border: 1px dashed #8ABA8A; }
+  .chip.add:hover { background: #ddf0d8; }
+  .chip.user { background: var(--accent-warm); color: #8a6a30; }
+  .chip.user.active { background: var(--accent-gold); color: #5a4010; box-shadow: 0 0 0 2px var(--accent-gold) inset; }
+  .chip .x { margin-left: 6px; opacity: 0.5; padding: 0 4px; border-radius: 3px; }
+  .chip .x:hover { background: rgba(0,0,0,0.05); opacity: 1; }
+
+  /* —— 预设词包两级折叠 —— */
+  .pack-tools { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; }
+  .pack-tools .spacer { flex: 1; }
+  .pack-tools button.linkbtn {
+    background: var(--card); border: 1px solid var(--border); color: var(--muted);
+    border-radius: 7px; padding: 3px 11px; font-size: 12px; cursor: pointer; font-family: inherit;
+    transition: all .15s;
+  }
+  .pack-tools button.linkbtn:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+  .pack-tree { display: flex; flex-direction: column; gap: 8px; }
+  .pack-main { 
+    border: 1px solid var(--border-light); border-radius: var(--radius-sm); 
+    background: #fff; overflow: hidden; box-shadow: var(--shadow);
+    transition: box-shadow .18s;
+  }
+  .pack-main:hover { box-shadow: var(--shadow-lg); }
+  .pack-main-head {
+    display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+    cursor: pointer; user-select: none; font-weight: 600; font-size: 13px;
+    transition: background .15s;
+  }
+  .pack-main-head:hover { background: var(--card-alt); }
+  .pack-caret { display: inline-block; width: 12px; color: var(--muted); transition: transform .15s; font-size: 11px; }
+  .pack-main.open .pack-caret { transform: rotate(90deg); }
+  .pack-main-title { flex: 0 0 auto; color: var(--text); }
+  .pack-main-desc { flex: 1; font-weight: 400; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pack-main-count { 
+    font-size: 11px; font-weight: 500; color: var(--brand); 
+    background: var(--brand-soft); border-radius: 999px; padding: 2px 9px; 
+  }
+  .pack-main.open .pack-main-head { border-bottom: 1px dashed var(--border); }
+  .pack-subs { display: none; padding: 10px 14px 14px 14px; background: var(--card-alt); }
+  .pack-main.open .pack-subs { display: block; }
+  .pack-subs .chips { gap: 7px; }
+  .chip.sub { background: var(--bg-soft); padding: 5px 13px; font-size: 12.5px; border-color: var(--border); }
+  .chip.sub:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+  .chip.sub.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .pack-subs .selall {
+    background: none; border: none; color: var(--brand); font-size: 12px;
+    cursor: pointer; padding: 0 0 8px 2px; font-family: inherit; font-weight: 600;
+  }
+  .pack-subs .selall:hover { text-decoration: underline; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(26,29,38,.25); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal { 
+    background: var(--card); border-radius: var(--radius); padding: 26px; 
+    width: 92%; max-width: 540px; box-shadow: var(--shadow-lg); 
+    border: 1px solid var(--border-light);
+  }
+  .modal h3 { margin: 0 0 16px; font-size: 17px; color: var(--text); }
+  .modal label { display: block; font-size: 13px; color: var(--muted); margin: 11px 0 4px; font-weight: 500; }
+  .modal input, .modal textarea { 
+    width: 100%; border: 1px solid var(--border); border-radius: 9px; 
+    padding: 9px 12px; font-size: 14px; font-family: inherit; box-sizing: border-box;
+    background: #fff; transition: border-color .15s, box-shadow .15s;
+  }
+  .modal input:focus, .modal textarea:focus {
+    outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(240,101,101,.10);
+  }
+  .modal textarea { min-height: 120px; resize: vertical; }
+  .modal .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  .modal .preview-box {
+    background: var(--bg-soft); border: 1px solid var(--border-light); border-radius: 8px;
+    padding: 10px 12px; min-height: 60px; font-size: 13px; color: var(--text-soft);
+    margin-top: 4px; line-height: 1.6;
+  }
+  .modal .preview-box .hit { color: var(--accent-dark); font-weight: 600; }
+  .modal .preview-box .miss { color: var(--danger); }
+  .cache-info { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+  .cache-info b { color: var(--accent-dark); }
+  .tutorial-link { color: var(--brand); text-decoration: none; font-weight: 600; display: inline-block; margin-top: 8px; }
+  .tutorial-link:hover { text-decoration: underline; }
+  .tutorial { 
+    background: linear-gradient(135deg, #FFFAF5 0%, #FFF5F7 100%); 
+    border: 1px solid var(--border-light); border-radius: var(--radius); 
+    padding: 20px 22px; margin-bottom: 20px;
+  }
+  .tutorial h3 { font-size: 16px; margin: 0 0 6px; color: var(--text); }
+  .tut-intro { color: var(--muted); font-size: 13px; margin: 0 0 18px; line-height: 1.7; }
+  .tut-step { display: flex; gap: 14px; margin-bottom: 22px; align-items: flex-start; }
+  .tut-step:last-child { margin-bottom: 0; }
+  .tut-step-num { 
+    width: 30px; height: 30px; border-radius: 50%; background: var(--brand); color: #fff; 
+    display: inline-flex; align-items: center; justify-content: center; 
+    font-weight: 700; font-size: 14px; flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(240,101,101,.28);
+  }
+  .tut-step-body { flex: 1; min-width: 0; }
+  .tut-step-title { font-weight: 600; font-size: 14.5px; margin-bottom: 6px; color: var(--text); }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>YouTube KOC 挖掘工具（多区 · 地区精准识别）</h1>
+    <p>输入 API key 和筛选条件，工具自动调用 YouTube 官方接口，抓取并筛出符合条件的 KOC 频道，并用三层信号判定每个频道在哪个国家。数据全程在本机浏览器内运行，不上传任何云端。</p>
+    <div class="changelog-toggle" id="changelogToggle" onclick="document.getElementById('changelogPanel').classList.toggle('open');this.classList.toggle('open')">
+      <span class="arrow">▶</span> 更新日志
+    </div>
+    <div class="changelog-panel" id="changelogPanel">
+      <div class="changelog-item"><span class="date">2026-09-15 v10</span><span class="desc">新增「地区精准识别」，解决「欧美澳加的 YouTuber 都讲英语、只靠语言分不出国家」这个问题。先说清楚一个前提：YouTube 公开接口不提供任何人的 IP，观众地理分布只有频道主本人在后台看得到，所以「按 IP 抓」这条路在挖掘端根本不存在，工具因此改用三层可观测信号做判定，并给出置信度分档。<br><br>第一层是频道的 country 字段，也就是创作者自己填的所在国，这是唯一能当硬数据的信号，实测在英语搜索召回的频道里覆盖率约 82%，能把美国、加拿大、英国、爱尔兰、澳洲干净分开。第二层是文本线索，用来给 country 缺失的频道补位、也用来给有 country 的频道做交叉验证，包括拼写差异（color 对 colour、favorite 对 favourite）、货币（$ / C$ / £ / A$）、华氏度（基本只有美国在用）、电话国际区号（+44 / +61 / +353）、外链域名后缀（.ca / .co.uk / .com.au）以及简介里的城市和州名。英国和澳洲的创作者几乎不会写美式拼写，所以这套规则对英语区的区分度相当好。第三层是可选的跨区召回校验，同一批搜索词分别在美区、加区、英区各搜一遍，看某个频道只在哪个区稳定出现；这层默认关闭以省配额，需要时打开即可。<br><br>判定结果按高、中、待确认三档标注，信号不足的如实标待确认而不硬归类，避免污染投放决策。结果表、CSV 导出、分享报告和历史记录都新增了「地区」和「置信度」两列，鼠标悬停地区标签就能看到具体的判定依据。搜索地区下拉同时扩展为美国、英国、加拿大、澳洲、爱尔兰、新西兰等多个国家，切到非韩文区时会自动关闭「只保留韩文标题频道」这道过滤，否则当地频道会被整道挡掉。<br><br>有一点必须提醒：这三层判定的是「创作者在哪个国家」，不等于「观众在哪个国家」。观众地区公开渠道永远拿不到，所以投放时请在 Google Ads 端用地理定向兜底——广告定向到该频道的版位，同时限制只展示给目标国家用户，非目标地区不计费，这样频道的地区属性就从硬门槛变成了成本变量。</span></div>
+      <div class="changelog-item"><span class="date">2026-09-04 v9</span><span class="desc">按使用反馈二次调整核心词与筛选。(1) 核心词由四维度精简为两个维度：①竞品/同类游戏名 ②题材/玩法细分品类；删除「内容形式」「平台提示」两个维度（平台仍由筛选条件顶部的「调研目标游戏平台」统一控制）。(2) 题材恢复为 12 主品类 × 48 副品类的两级折叠树，每个副品类对应一组韩语搜索词，点选即用。(3) 竞品/同类游戏名翻译强化：中文游戏名翻成韩语、英文游戏名保留原名并补「게임/모바일」后缀、韩文游戏名补「게임/공략」后缀，中英韩输入都能生成韩语搜索词。(4) 删除「均播下限」筛选（均播计算与展示保留）。(5) 「调研目标游戏名」改为仅作参考标注、不再过滤只保留做过该游戏的频道。</span></div>
+      <div class="changelog-item"><span class="date">2026-09-04 v8</span><span class="desc">核心词与召回逻辑大改。(1) 核心词由原来的「预设词包 + 自建词包 + 搜索词」三层，重构为四个维度：①竞品/同类游戏名（一行一个）②题材/玩法（点选）③平台（复用筛选条件顶部）④内容形式（点选），工具自动翻译组合成韩语搜索词并在预览框展示、可手动改。(2) 召回逻辑从「搜频道名」改为「搜视频再反查频道」（type=video → snippet.channelId），只召回真正发过这类内容的频道，解决泛推荐号霸榜、垂直号漏掉、非游戏号混入、同频道重复出现四类问题。(3) 搜索接口新增 regionCode 限定地区（KR/US/JP）。(4) 非游戏频道黑名单补全游戏公司官方号、游戏媒体门户、账号交易/代练/充值等实体。</span></div>
+      <div class="changelog-item"><span class="date">2026-09-01 v7</span><span class="desc">修正平台前置判断过严、把大量手游频道误判为 PC/主机的问题。原因：PC 关键词表此前混入「포켓몬/젤다/리니지/검은사막/롤/발로란트/오버워치/스타/메이플/디아블로/로스트아크/엘든링/poe/gta5」等平台通吃或跨端的游戏名，加上主机表里「마리오/동물의숲/포켓몬스터」等具体游戏名，导致一条标题同时被 PC 和主机两个篮子打标、占比虚高。现收紧为只保留真正指向平台的词（PC：스팀/컴퓨터/PC방/에픽/윈도우 等；主机：ps5/xbox/닌텐도/플스/콘솔 等），并让 PC 与主机判断互相排斥（同时命中归主机），50% 门槛不变。</span></div>
+      <div class="changelog-item"><span class="date">2026-09-01 v6</span><span class="desc">新增「平台前置判断」与「历史筛选记录」两大能力。(1) 筛选条件顶部新增「调研目标游戏平台」选择器（手游 / PC / 主机 / 不限）：抓取到候选 KOC 后先按平台匹配，目标为手游时 PC+主机内容占比 &gt; 50% 的频道被直接排除，跳过均播计算、不进结果表（反之目标为 PC/主机时手游占比 &gt; 50% 排除），可省配额。新增 PC / 主机内容关键词表，结果表与 CSV / 报告统一展示「平台(手/PC/主机)」列。(2) 新增「⑥ 历史筛选记录」卡片：每次筛选出表后自动保存一条（含筛选要求快照 + 结果表），数据仅存本机浏览器 localStorage，可查看、导出 CSV、单条删除或一键清空。</span></div>
+      <div class="changelog-item"><span class="date">2026-08-31 v5</span><span class="desc">UI 全面重绘，精确匹配参考图 Aplen 仪表盘色卡。外层背景 #B5C2D0 冷钢蓝灰、卡片纯白、深色 Hero 区 #2E3848 海军板岩（匹配图中 My progress 暗区）、标题字 #1A1F2E 深炭蓝、正文 #566478 冷灰蓝。三色强调系：亮柠檬绿 #D4ED54（主操作/高亮，匹配图右侧 03 卡）、薰衣草紫 #CBBFF8（链接/标签）、暖沙色 #F0E4D0（警告/次要标签）。按钮主色 #3D5068 海军蓝、终端日志 #252F3E 深海蓝底。整体风格从暖棕奶黄彻底切换为冷调现代仪表盘。</span></div>
+      <div class="changelog-item"><span class="date">2026-08-31 v4</span><span class="desc">修复整页不渲染的严重故障（样式表闭合标签丢失，导致脚本整段未执行）。为全部 51 个副品类补齐精确韩语词条，此前 8 个 RPG 子类有 6 个都只输出「RPG」这类泛词，现已互不重复。清理词典 14 处重复键。日文区修复：英文概念不再错翻成韩语，改走日语词条。新增 13 条英文复合词，消除「tower defense」被拼成叠词的问题。MOBA 词条改为韩国惯用的 AOS 优先。</span></div>
+      <div class="changelog-item"><span class="date">2026-08-31 v4</span><span class="desc">修复重大误判 bug：非游戏频道（大学、政府、新闻媒体、医院、宗教等）混入 KOC 筛选结果。新增三层防护：(1) NON_GAME_RE 黑名单 + isNonGameChannel() 函数，在搜索召回阶段硬排除非游戏实体；(2) applyFilters() 安全网二次校验；(3) 游戏内容质量阈值——无 gangstar 信号 + 无具体游戏名 + 只有 news/sports/casual 品类的频道自动排除。覆盖 대학교/university/학교/KBS/MBC/SBS/경찰청/병원/교회 等 40+ 关键词。</span></div>
+      <div class="changelog-item"><span class="date">2026-08-31 v3</span><span class="desc">UI 重设计：蓝藻奶巧配色方案（#C7D3DB 蓝灰 / #A79A8A 暖棕 / #FCF7DF 奶白 / #3E3630 深炭），现代圆角卡片风格。新增更新日志模块。修复新建词包英文不翻译成韩语的严重 bug。搜索词搬入筛选条件卡片内。词包重写为 12 主品类 × 48 副品类两级结构。</span></div>
+      <div class="changelog-item"><span class="date">2026-08-31 v2</span><span class="desc">词包结构重构：从 6 个扁平词包 → 13 主品类 → 12 主品类（按行业标准分类法）。韩语术语全面校准为韩国玩家实际搜索用语。翻译引擎升级支持中文子串匹配和英文短语 N-gram 翻译。EN_TO_KO 扩充 40+ 词条。</span></div>
+      <div class="changelog-item"><span class="date">2026-08-28 v1</span><span class="desc">初始版本。核心功能：YouTube Data API v3 搜索 + 频道档案抓取 + 深度视频分析 + 自动分类（RPG/动作/射击/开放世界等）+ 均播计算 + 多维度筛选。预设词包 6 个，含黑帮题材加权评分（gangstar_hard_pct）。API Key 7 步图文教程。交付 zip 打包。</span></div>
+    </div>
+  </header>
+
+  <div class="banner">使用前请先申请自己的 YouTube Data API v3 密钥（免费，每天 1 万单位配额）。一次完整挖掘约消耗 2000～4000 单位，一个 key 一天够跑 2～3 轮。密钥仅保存在你自己的浏览器本地，不会发给任何服务器。<br><a href="#" class="tutorial-link" id="tutorialToggle">📘 如何获取 API Key？点此查看 7 步教程</a></div>
+
+  <div class="tutorial hidden" id="tutorialPanel">
+    <h3>📘 YouTube Data API v3 密钥获取教程</h3>
+    <p class="tut-intro">整个过程约 3 分钟，需要 Google 账号和一张能收短信的手机号（仅首次创建项目时验证）。全程免费，不会扣任何费用。</p>
+
+    <div class="tut-step">
+      <div class="tut-step-num">1</div>
+      <div class="tut-step-body">
+        <div class="tut-step-title">打开 Google Cloud Console</div>
+        <div class="tut-step-desc">浏览器访问 <a href="https://console.cloud.google.com/" target="_blank">https://console.cloud.google.com/</a>，用你的 Google 账号登录。第一次访问会让你接受服务条款，勾选同意即可。</div>
+        <div class="tut-img-wrap">
+          <svg viewBox="0 0 600 110" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+            <rect x="0" y="0" width="600" height="44" fill="#202124"/>
+            <text x="20" y="28" fill="#fff" font-size="14">≡  Google Cloud</text>
+            <circle cx="570" cy="22" r="10" fill="#1f6feb"/>
+            <text x="570" y="26" fill="#fff" font-size="11" text-anchor="middle">U</text>
+            <rect x="140" y="11" width="170" height="22" fill="#3c4043" rx="3"/>
+            <text x="152" y="26" fill="#fff" font-size="12">📁 My First Project  ▼</text>
+            <rect x="135" y="7" width="180" height="30" fill="none" stroke="#d64545" stroke-width="2" stroke-dasharray="5,3"/>
+            <text x="330" y="26" fill="#d64545" font-size="12" font-weight="bold">① 这里能切换/创建项目</text>
+            <rect x="0" y="44" width="600" height="66" fill="#fff"/>
+            <text x="20" y="80" fill="#5f6368" font-size="12">欢迎来到 Google Cloud Platform</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="tut-step">
+      <div class="tut-step-num">2</div>
+      <div class="tut-step-body">
+        <div class="tut-step-title">点击顶部「项目下拉框」→ New Project</div>
+        <div class="tut-step-desc">点开页面顶部标着项目名的下拉框，弹出菜单里选 <b>New Project</b>（新建项目）。每个项目独立计费、配额独立，建议每个挖掘工具单独建一个。</div>
+        <div class="tut-img-wrap">
+          <svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+            <rect x="0" y="0" width="600" height="44" fill="#202124"/>
+            <text x="20" y="28" fill="#fff" font-size="14">≡  Google Cloud</text>
+            <rect x="140" y="11" width="170" height="22" fill="#3c4043" rx="3"/>
+            <text x="152" y="26" fill="#fff" font-size="12">📁 My First Project  ▼</text>
+            <rect x="0" y="44" width="600" height="156" fill="#fff"/>
+            <rect x="140" y="44" width="240" height="156" fill="#fff" stroke="#dadce0"/>
+            <rect x="148" y="52" width="216" height="28" fill="#f8f9fa"/>
+            <text x="160" y="70" fill="#202124" font-size="12">🔍 搜索项目…</text>
+            <rect x="148" y="86" width="216" height="30" fill="#e8f0fe"/>
+            <text x="160" y="105" fill="#1f6feb" font-size="12" font-weight="bold">+ New Project</text>
+            <text x="200" y="135" fill="#5f6368" font-size="11">My First Project</text>
+            <text x="200" y="153" fill="#80868b" font-size="10">编号: koc-tool-xxxx</text>
+            <rect x="142" y="82" width="228" height="38" fill="none" stroke="#d64545" stroke-width="2" stroke-dasharray="5,3"/>
+            <text x="400" y="106" fill="#d64545" font-size="13" font-weight="bold">② 选「+ New Project」</text>
+            <path d="M 372 102 L 392 102" stroke="#d64545" stroke-width="2" fill="none" marker-end="url(#ar1)"/>
+            <defs><marker id="ar1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="#d64545"/></marker></defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="tut-step">
+      <div class="tut-step-num">3</div>
+      <div class="tut-step-body">
+        <div class="tut-step-title">填项目名 → Create</div>
+        <div class="tut-step-desc">项目名随便起，比如 <b>koc-tool</b> 或 <b>my-koc-2026</b>，方便辨认即可。Project ID 是自动生成的，不用改。组织选 <b>No organization</b>（个人用）。点击底部蓝色 <b>CREATE</b> 按钮。</div>
+        <div class="tut-img-wrap">
+          <svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+            <rect x="0" y="0" width="600" height="44" fill="#202124"/>
+            <text x="20" y="28" fill="#fff" font-size="14">≡  Google Cloud</text>
+            <rect x="0" y="44" width="600" height="236" fill="#f8f9fa"/>
+            <rect x="80" y="70" width="440" height="200" fill="#fff" stroke="#dadce0" rx="4"/>
+            <text x="100" y="100" fill="#202124" font-size="14" font-weight="bold">New Project</text>
+            <text x="100" y="125" fill="#5f6368" font-size="11">Project name *</text>
+            <rect x="100" y="132" width="400" height="28" fill="#fff" stroke="#1f6feb" stroke-width="2" rx="3"/>
+            <text x="110" y="151" fill="#202124" font-size="12">koc-tool</text>
+            <rect x="370" y="135" width="120" height="22" fill="#fce8e6" rx="2"/>
+            <text x="430" y="150" fill="#d64545" font-size="10" text-anchor="middle">✓ 可用</text>
+            <text x="100" y="178" fill="#5f6368" font-size="11">Organization</text>
+            <rect x="100" y="185" width="400" height="28" fill="#fff" stroke="#dadce0" rx="3"/>
+            <text x="110" y="204" fill="#202124" font-size="12">No organization</text>
+            <rect x="395" y="245" width="105" height="34" fill="#1f6feb" rx="4"/>
+            <text x="447" y="266" fill="#fff" font-size="12" text-anchor="middle" font-weight="bold">CREATE</text>
+            <rect x="389" y="239" width="117" height="46" fill="none" stroke="#d64545" stroke-width="2" stroke-dasharray="5,3"/>
+            <text x="180" y="270" fill="#d64545" font-size="13" font-weight="bold">③ 点 CREATE</text>
+            <path d="M 290 263 L 388 263" stroke="#d64545" stroke-width="2" fill="none" marker-end="url(#ar2)"/>
+            <defs><marker id="ar2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="#d64545"/></marker></defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="tut-step">
+      <div class="tut-step-num">4</div>
+      <div class="tut-step-body">
+        <div class="tut-step-title">侧边栏 → APIs & Services → Library</div>
+        <div class="tut-step-desc">项目创建完成后会自动跳转。点击左上角 <b>☰ 三横线</b>（导航菜单），展开后找到 <b>APIs & Services</b> → <b>Library</b>（库）。</div>
+        <div class="tut-img-wrap">
+          <svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+            <rect x="0" y="0" width="600" height="44" fill="#202124"/>
+            <text x="20" y="28" fill="#fff" font-size="14">≡  Google Cloud</text>
+            <rect x="140" y="11" width="170" height="22" fill="#3c4043" rx="3"/>
+            <text x="152" y="26" fill="#fff" font-size="12">📁 koc-tool  ▼</text>
+            <rect x="0" y="44" width="220" height="236" fill="#fff" stroke="#dadce0"/>
+            <text x="14" y="70" fill="#202124" font-size="12" font-weight="bold">≡ 菜单</text>
+            <text x="14" y="100" fill="#202124" font-size="11">▸ IAM &amp; Admin</text>
+            <text x="14" y="120" fill="#1f6feb" font-size="11" font-weight="bold">▾ APIs &amp; Services</text>
+            <rect x="20" y="128" width="194" height="22" fill="#e8f0fe"/>
+            <text x="34" y="143" fill="#1f6feb" font-size="11" font-weight="bold">Library</text>
+            <text x="34" y="163" fill="#5f6368" font-size="11">Credentials</text>
+            <text x="14" y="190" fill="#5f6368" font-size="11">▸ Compute Engine</text>
+            <text x="14" y="210" fill="#5f6368" font-size="11">▸ Storage</text>
+            <rect x="20" y="125" width="200" height="28" fill="none" stroke="#d64545" stroke-width="2" stroke-dasharray="5,3"/>
+            <text x="240" y="146" fill="#d64545" font-size="13" font-weight="bold">④ 点「Library」</text>
+            <path d="M 222 140 L 238 140" stroke="#d64545" stroke-width="2" fill="none" marker-end="url(#ar3)"/>
+            <defs><marker id="ar3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="#d64545"/></marker></defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="tut-step">
+      <div class="tut-step-num">5</div>
+      <div class="tut-step-body">
+        <div class="tut-step-title">搜索 YouTube Data API v3 → ENABLE</div>
+        <div class="tut-step-desc">在搜索框输入 <b>YouTube Data API v3</b>，点搜索结果第一项进入详情页，再点蓝色 <b>ENABLE</b> 按钮。启用成功后会自动跳转到 API 概览页。</div>
+        <div class="tut-img-wrap">
+          <svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+            <rect x="0" y="0" width="600" height="44" fill="#202124"/>
+            <text x="20" y="28" fill="#fff" font-size="14">≡  Google Cloud</text>
+            <rect x="140" y="11" width="170" height="22" fill="#3c4043" rx="3"/>
+            <text x="152" y="26" fill="#fff" font-size="12">📁 koc-tool  ▼</text>
+            <rect x="0" y="44" width="220" height="236" fill="#fff" stroke="#dadce0"/>
+            <text x="14" y="70" fill="#202124" font-size="12" font-weight="bold">API Library</text>
+            <rect x="240" y="60" width="350" height="220" fill="#fff" stroke="#dadce0" rx="4"/>
+            <text x="260" y="84" fill="#202124" font-size="12" font-weight="bold">API Library</text>
+            <rect x="260" y="95" width="310" height="28" fill="#fff" stroke="#1f6feb" stroke-width="2" rx="14"/>
+            <text x="275" y="113" fill="#202124" font-size="12">🔍 YouTube Data API v3</text>
+            <rect x="260" y="135" width="310" height="58" fill="#f8f9fa" stroke="#dadce0" rx="3"/>
+            <text x="275" y="156" fill="#202124" font-size="12" font-weight="bold">YouTube Data API v3</text>
+            <text x="275" y="174" fill="#5f6368" font-size="10">Google  ·  YouTube  ·  已启用 (其他项目中)</text>
+            <rect x="260" y="131" width="310" height="66" fill="none" stroke="#d64545" stroke-width="2" stroke-dasharray="5,3"/>
+            <text x="260" y="220" fill="#d64545" font-size="12" font-weight="bold">⑤ 选第一条，点进去 → 点 ENABLE</text>
+          </svg>
+        </div>
+        <div class="tut-img-wrap" style="margin-top:8px;">
+          <svg viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+            <rect x="0" y="0" width="600" height="44" fill="#202124"/>
+            <text x="20" y="28" fill="#fff" font-size="14">≡  Google Cloud</text>
+            <rect x="140" y="11" width="170" height="22" fill="#3c4043" rx="3"/>
+            <text x="152" y="26" fill="#fff" font-size="12">📁 koc-tool  ▼</text>
+            <rect x="0" y="44" width="600" height="116" fill="#f8f9fa"/>
+            <text x="20" y="78" fill="#202124" font-size="18" font-weight="bold">YouTube Data API v3</text>
+            <text x="20" y="100" fill="#5f6368" font-size="11">Google  ·  YouTube</text>
+            <rect x="380" y="78" width="160" height="42" fill="#1f6feb" rx="4"/>
+            <text x="460" y="105" fill="#fff" font-size="14" text-anchor="middle" font-weight="bold">ENABLE</text>
+            <rect x="372" y="70" width="178" height="58" fill="none" stroke="#d64545" stroke-width="2.5" stroke-dasharray="5,3"/>
+            <text x="160" y="148" fill="#d64545" font-size="12" font-weight="bold">点 ENABLE（启用）</text>
+            <path d="M 296 105 L 372 100" stroke="#d64545" stroke-width="2" fill="none" marker-end="url(#ar5)"/>
+            <defs><marker id="ar5" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="#d64545"/></marker></defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="tut-step">
+      <div class="tut-step-num">6</div>
+      <div class="tut-step-body">
+        <div class="tut-step-title">左侧 Credentials → + CREATE CREDENTIALS → API key</div>
+        <div class="tut-step-desc">启用 API 后，侧边栏点 <b>Credentials</b>（凭据），顶部点 <b>+ CREATE CREDENTIALS</b>，下拉菜单选 <b>API key</b>。</div>
+        <div class="tut-img-wrap">
+          <svg viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+            <rect x="0" y="0" width="600" height="44" fill="#202124"/>
+            <text x="20" y="28" fill="#fff" font-size="14">≡  Google Cloud</text>
+            <rect x="140" y="11" width="170" height="22" fill="#3c4043" rx="3"/>
+            <text x="152" y="26" fill="#fff" font-size="12">📁 koc-tool  ▼</text>
+            <rect x="0" y="44" width="220" height="256" fill="#fff" stroke="#dadce0"/>
+            <text x="14" y="70" fill="#5f6368" font-size="11">▸ APIs &amp; Services</text>
+            <rect x="20" y="80" width="194" height="22" fill="#e8f0fe"/>
+            <text x="34" y="95" fill="#1f6feb" font-size="11" font-weight="bold">Credentials</text>
+            <rect x="20" y="77" width="200" height="28" fill="none" stroke="#d64545" stroke-width="2" stroke-dasharray="5,3"/>
+            <rect x="240" y="60" width="340" height="240" fill="#fff" stroke="#dadce0" rx="4"/>
+            <text x="260" y="84" fill="#202124" font-size="14" font-weight="bold">Credentials</text>
+            <rect x="395" y="70" width="170" height="32" fill="#1f6feb" rx="4"/>
+            <text x="480" y="90" fill="#fff" font-size="12" text-anchor="middle" font-weight="bold">+ CREATE CREDENTIALS ▼</text>
+            <rect x="389" y="64" width="184" height="44" fill="none" stroke="#d64545" stroke-width="2" stroke-dasharray="5,3"/>
+            <rect x="395" y="104" width="170" height="80" fill="#fff" stroke="#dadce0" rx="3"/>
+            <text x="410" y="124" fill="#202124" font-size="12">API key</text>
+            <text x="410" y="146" fill="#5f6368" font-size="10">OAuth client ID</text>
+            <text x="410" y="166" fill="#5f6368" font-size="10">Service account key</text>
+            <rect x="389" y="100" width="184" height="88" fill="none" stroke="#d64545" stroke-width="2" stroke-dasharray="5,3"/>
+            <rect x="402" y="111" width="155" height="20" fill="#e8f0fe"/>
+            <text x="475" y="125" fill="#1f6feb" font-size="11" text-anchor="middle" font-weight="bold">选「API key」</text>
+            <text x="180" y="220" fill="#d64545" font-size="12" font-weight="bold">⑥ 依次点开下拉，选第一项</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="tut-step">
+      <div class="tut-step-num">7</div>
+      <div class="tut-step-body">
+        <div class="tut-step-title">复制弹窗里的 API Key</div>
+        <div class="tut-step-desc">弹窗会显示一串以 <b>AIza</b> 开头、39 位左右的字符串。点右侧 📋 图标复制完整字符串，粘贴到工具里 <b>① API 密钥</b> 输入框即可。弹窗关闭后，密钥会保留在凭据列表里随时可查。</div>
+        <div class="tut-img-wrap">
+          <svg viewBox="0 0 600 220" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+            <rect x="0" y="0" width="600" height="180" fill="#000" opacity="0.35"/>
+            <rect x="0" y="0" width="600" height="220" fill="#f8f9fa"/>
+            <rect x="0" y="0" width="600" height="44" fill="#202124"/>
+            <text x="20" y="28" fill="#fff" font-size="14">≡  Google Cloud</text>
+            <rect x="120" y="70" width="360" height="130" fill="#fff" stroke="#dadce0" rx="6"/>
+            <text x="140" y="100" fill="#202124" font-size="14" font-weight="bold">API key created</text>
+            <text x="140" y="120" fill="#5f6368" font-size="11">Your new API key. Store it securely.</text>
+            <rect x="140" y="130" width="280" height="32" fill="#f1f3f4" stroke="#dadce0" rx="3"/>
+            <text x="150" y="150" fill="#202124" font-size="11" font-family="monospace">AIzaSyD-xYzK-_aBcDeFgHiJkLmNoPq</text>
+            <rect x="430" y="130" width="32" height="32" fill="#fff" stroke="#dadce0" rx="3"/>
+            <text x="446" y="152" fill="#5f6368" font-size="16" text-anchor="middle">📋</text>
+            <rect x="140" y="126" width="324" height="40" fill="none" stroke="#d64545" stroke-width="2" stroke-dasharray="5,3"/>
+            <rect x="345" y="176" width="120" height="18" fill="none"/>
+            <text x="180" y="210" fill="#d64545" font-size="12" font-weight="bold">⑦ 复制这串字符（AIza 开头），粘贴到工具里</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="tut-tip">
+      <b>建议：限制 API Key 的使用范围。</b> 创建好密钥后，点密钥名进入编辑页，<b>API restrictions</b> 选 <b>Restrict key</b>，下拉里只勾选 <b>YouTube Data API v3</b>。这样即使密钥不小心泄露，别人也只能调用这一个 API，安全性高很多。配额和功能不受影响。
+    </div>
+    <div class="tut-tip" style="background:#fdeaea;border-left-color:#d64545;color:#8a2c2c">
+      <b>⚠ 必看：Application restrictions（应用限制）一定要选「无」。</b> 同一个编辑页里还有一项 <b>Application restrictions</b>，请保持默认的 <b>None（无）</b>。<br>
+      千万不要选 <b>HTTP referrers（网站限制）</b> 并填写网址——本工具是本地双击打开的网页，没有网址来源（referrer），一旦设了网站限制，密钥会被 Google 拒绝，工具会一直报「API key not valid」。<br>
+      这一项留「无」不影响上面那条 API 范围限制，两者是分开的。
+    </div>
+  </div>
+  
+
+  <!-- API Key -->
+  <div class="card">
+    <h2>① API 密钥</h2>
+    <p class="sub">粘贴你的 YouTube Data API v3 key，浏览器会记住它，下次打开自动带出。</p>
+    <div class="keyrow">
+      <input type="text" id="apiKey" placeholder="AIza... 粘贴你的 API key" autocomplete="off">
+      <button class="btn ghost small" id="btnSaveKey">保存</button>
+      <button class="btn ghost small" id="btnClearKey">清除</button>
+    </div>
+    <div class="hint" id="keyStatus">尚未设置密钥。</div>
+    <div class="hint" style="margin-top:8px"><a href="#" id="btnClearCache" style="color:var(--accent);text-decoration:none">清空搜索结果缓存</a>　·　缓存保留 30 天，过期自动失效。</div>
+  </div>
+
+  <!-- 筛选条件 -->
+  <div class="card">
+    <h2>② 筛选条件</h2>
+    <p class="sub">这些条件在结果最后统一生效，符合条件的频道才会进入结果表。</p>
+
+    <div style="background:var(--accent-warm);border:1px solid var(--accent-gold);border-radius:10px;padding:14px 16px;margin-bottom:6px">
+      <label class="fld" style="margin-top:0">🎯 前置条件 · 调研目标游戏平台</label>
+      <select id="targetPlatform" style="max-width:340px">
+        <option value="mobile" selected>手游</option>
+        <option value="pc">PC 端游戏</option>
+        <option value="console">主机端游戏</option>
+        <option value="any">不限平台</option>
+      </select>
+      <div class="hint">这是最先执行的一关：抓取到候选 KOC 后，先看它主页的 PC / 主机内容占比。目标选「手游」时，PC+主机内容 &gt; 50% 的频道会被直接排除，不再分析后面的视频内容类型、均播等，也不会进入结果表。反过来目标选 PC / 主机时，手游内容占比 &gt; 50% 的频道同理排除。</div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <label class="fld">粉丝数下限</label>
+        <input type="number" id="subsMin" value="1000" min="0" step="100">
+      </div>
+      <div class="col">
+        <label class="fld">粉丝数上限</label>
+        <input type="number" id="subsMax" value="50000" min="0" step="100">
+      </div>
+      <div class="col">
+        <label class="fld">活跃度门槛（最近更新）</label>
+        <select id="activeWindow">
+          <option value="30">30 天内</option>
+          <option value="90">90 天内</option>
+          <option value="180" selected>180 天内（半年）</option>
+          <option value="365">365 天内</option>
+          <option value="0">不限</option>
+        </select>
+      </div>
+    </div>
+
+    <label class="fld">调研目标游戏名（可选，仅作参考标注，不参与筛选）</label>
+    <input type="text" id="gameName" placeholder="例如：갱스타、Gangstar、원신、킹덤2 ...">
+    <div class="hint">这里填本次调研的目标游戏，只是给结果和历史记录加一个参考标签，不会用来过滤「只保留做过该游戏的频道」，也不影响后面的关键词搜索。留空即可。</div>
+
+    <div class="row" style="margin-top:12px">
+      <div class="col">
+        <label class="fld">搜索地区（限定 YouTube 搜索的 regionCode，同时决定生成搜索词的语言）</label>
+        <select id="region">
+          <option value="KR" selected>KR 韩国（生成韩语搜索词）</option>
+          <option value="US">US 美国（生成英语搜索词）</option>
+          <option value="GB">GB 英国（生成英语搜索词）</option>
+          <option value="CA">CA 加拿大（生成英语搜索词）</option>
+          <option value="AU">AU 澳大利亚（生成英语搜索词）</option>
+          <option value="IE">IE 爱尔兰（生成英语搜索词）</option>
+          <option value="NZ">NZ 新西兰（生成英语搜索词）</option>
+          <option value="JP">JP 日本（生成日语搜索词）</option>
+          <option value="CN">CN 中国（生成中文搜索词）</option>
+          <option value="TW">TW 中国台湾（生成中文搜索词）</option>
+          <option value="all">多区/不限（同时生成韩语 + 英语搜索词）</option>
+        </select>
+      </div>
+      <div class="col">
+        <label class="fld">仅保留有公开邮箱的频道</label>
+        <select id="emailOnly">
+          <option value="1">是（推荐，方便直接联系投放）</option>
+          <option value="0">否（不限邮箱）</option>
+        </select>
+      </div>
+      <div class="col">
+        <label class="fld">只保留韩文标题频道</label>
+        <select id="hangulOnly">
+          <option value="1" selected>是（过滤英文/其他语言频道）</option>
+          <option value="0">否（不过滤）</option>
+        </select>
+      </div>
+      <div class="col">
+        <label class="fld">计算均播的频道数上限</label>
+        <input type="number" id="avgLimit" value="30" min="1" max="200" step="5">
+      </div>
+    </div>
+    <div class="hint">均播需要额外抓取每个频道的播放数据，为避免配额浪费，默认只对订阅数最高的前 30 个频道计算均播，可按需调整。</div>
+
+    <!-- ── 地区精准识别 ── -->
+    <hr style="border:none;border-top:1px dashed var(--border);margin:18px 0 14px">
+    <h2 style="font-size:15px;margin:0 0 2px">②‑c 地区精准识别（不只靠语言判断国家）</h2>
+    <p class="sub" style="margin-bottom:10px">欧美澳加的 YouTuber 都讲英语，光看语言分不出地区；而 YouTube 公开接口不提供任何人的 IP，观众地理分布只有频道主本人在后台能看到。所以这里改用「三层可观测信号」来判断 <b>创作者在哪个国家</b>，并给出置信度，判不出来的如实标记待确认。</p>
+
+    <div class="row">
+      <div class="col">
+        <label class="fld">结果地区筛选（按判定出的国家过滤）</label>
+        <select id="regionFilter">
+          <option value="any" selected>不限地区</option>
+          <option value="US">🇺🇸 美国 US</option>
+          <option value="CA">🇨🇦 加拿大 CA</option>
+          <option value="GB">🇬🇧 英国 GB</option>
+          <option value="IE">🇮🇪 爱尔兰 IE</option>
+          <option value="AU">🇦🇺 澳大利亚 AU</option>
+          <option value="NZ">🇳🇿 新西兰 NZ</option>
+          <option value="KR">🇰🇷 韩国 KR</option>
+          <option value="JP">🇯🇵 日本 JP</option>
+          <option value="north_america">北美（美国 + 加拿大）</option>
+          <option value="uk_ie">英国 + 爱尔兰</option>
+          <option value="oceania">澳新（澳大利亚 + 新西兰）</option>
+          <option value="english">英语区（美加英爱澳新）</option>
+          <option value="europe">欧洲（英爱 + 德法西意荷等）</option>
+          <option value="sea">东南亚（菲印马新泰越）</option>
+          <option value="latam">拉美（巴西墨西哥等）</option>
+          <option value="lowcost_ban">排除低成本地区（印度/巴基斯坦/孟加拉等）</option>
+        </select>
+      </div>
+      <div class="col">
+        <label class="fld">地区置信度门槛</label>
+        <select id="regionConf">
+          <option value="any" selected>不限（含待确认）</option>
+          <option value="medium">仅中置信及以上（排除待确认）</option>
+          <option value="high">仅高置信（country 字段明确）</option>
+        </select>
+      </div>
+      <div class="col">
+        <label class="fld">跨区召回校验（第三层信号，需额外配额）</label>
+        <select id="crossCheck">
+          <option value="0" selected>关闭（省配额，推荐先用这个）</option>
+          <option value="1">开启（每个搜索词额外搜 N 个对照区）</option>
+        </select>
+      </div>
+      <div class="col">
+        <label class="fld">对照区（开启跨区校验时生效）</label>
+        <input type="text" id="crossRegions" value="US,CA,GB" placeholder="US,CA,GB">
+      </div>
+    </div>
+    <div class="hint">
+      <b>三层信号分别是：</b>第一层用频道的 <code>country</code> 字段（创作者自填的所在国，实测覆盖率约 82%，是唯一能当硬数据的信号）；
+      第二层用文本线索补位和交叉验证，包括拼写（color 对 colour）、货币（$ / C$ / £ / A$）、华氏度（基本只有美国用）、电话区号（+44 / +61 / +353）、外链域名（.ca / .co.uk / .com.au）和城市州名；
+      第三层是可选的跨区召回校验，同一个搜索词分别在美区、加区、英区各搜一遍，看这个频道只在哪个区稳定出现。
+      <br><b>一个必须说清楚的前提：</b>前三层判定的是「创作者在哪」，而 UA 投放真正在意的是「观众在哪」。观众地区公开渠道永远拿不到，所以最终要靠 Google Ads 的地理定向兜底——广告定向到该频道的版位、同时限制只展示给目标国家用户，非目标地区不计费。这样频道的地区属性就从硬门槛变成了成本变量。
+    </div>
+
+    <!-- ── 核心词（游戏名 + 题材）── -->
+    <hr style="border:none;border-top:1px dashed var(--border);margin:18px 0 14px">
+    <h2 style="font-size:15px;margin:0 0 2px">②‑b 核心词（你要找什么样的 KOC）</h2>
+    <p class="sub" style="margin-bottom:10px">两个维度说清楚要什么样的人：①填竞品/同类游戏名（中英韩都行，会自动翻成韩语）、②点选题材细分品类。工具自动翻译组合成韩语搜索词（下方可预览、可手动改），再拿去 YouTube 搜「谁发过这类视频」。</p>
+
+    <label class="fld">① 竞品 / 同类游戏名（一行一个，中英韩都行）</label>
+    <textarea id="gameNames" placeholder="GTA 산안드레아스&#10;로스앤젤레스 크라임스&#10;듀드 셰프트 워즈&#10;원신&#10;原神"></textarea>
+    <div class="hint">最关键的维度：直接搜「谁发过这些游戏的视频」，再反查出他的频道。中文游戏名会翻成韩语、英文游戏名保留原名并补韩语说法。留空则只靠题材词搜。</div>
+
+    <label class="fld" style="margin-top:16px">② 题材 / 玩法类型（点主品类展开，副品类可多选）</label>
+    <div id="coreGenreChips"></div>
+    <div class="hint">每个副品类都对应一组韩语搜索词，点选后自动加入下方预览框。</div>
+
+    <div class="pack-section" style="margin-top:12px">
+      <div class="pack-label">
+        <span>自动生成搜索词预览（韩语，可手动增删，每行一个）</span>
+        <span class="pack-actions">
+          <button class="btn small ghost" id="btnRebuildQueries">重新生成</button>
+        </span>
+      </div>
+      <textarea id="queries" placeholder="此处会自动生成韩语搜索词，也可直接手写"></textarea>
+      <p class="cache-info">已缓存 <b id="cacheCount">0</b> 个搜索词的结果（命中缓存时不再消耗配额，可在「设置」中清空）</p>
+    </div>
+  </div>
+
+  <!-- 运行 -->
+  <div class="card">
+    <h2>③ 运行</h2>
+    <p class="sub">一键运行会按顺序自动完成搜索、抓档案、深抓分类、算均播、筛选出表。也可以展开分步模式逐步执行。</p>
+    <div class="toolbar">
+      <button class="btn" id="btnRunAll">▶ 一键运行</button>
+      <button class="btn ghost" id="btnToggleSteps">分步模式</button>
+      <button class="btn ghost" id="btnClearAll">清空结果</button>
+    </div>
+    <div class="steps hidden" id="stepsPanel">
+      <div class="step-row">
+        <span class="step-num" id="s1n">1</span>
+        <button class="btn small" id="btnStep1">步骤1 · 搜索候选频道</button>
+        <span class="step-desc" id="s1d">用搜索词召回候选频道（每个搜索词消耗 100 单位配额）</span>
+      </div>      <div class="step-row">
+        <span class="step-num" id="s2n">2</span>
+        <button class="btn small" id="btnStep2">步骤2 · 抓取频道档案</button>
+        <span class="step-desc" id="s2d">抓订阅数、描述、国家、创建时间、上传列表（每 50 个频道消耗 1 单位）</span>
+      </div>
+      <div class="step-row">
+        <span class="step-num" id="s3n">3</span>
+        <button class="btn small" id="btnStep3">步骤3 · 深抓视频并分类</button>
+        <span class="step-desc" id="s3d">抓每个频道最近视频，判断游戏类型、手游占比、二次元占比、题材重合度（每频道约 2 单位）</span>
+      </div>
+      <div class="step-row">
+        <span class="step-num" id="s4n">4</span>
+        <button class="btn small" id="btnStep4">步骤4 · 计算均播</button>
+        <span class="step-desc" id="s4d">抓播放量算平均播放（每频道约 2 单位）</span>
+      </div>
+      <div class="step-row">
+        <span class="step-num" id="s5n">5</span>
+        <button class="btn small green" id="btnStep5">步骤5 · 按条件筛选出表</button>
+        <span class="step-desc" id="s5d">纯本地计算，不消耗配额</span>
+      </div>
+    </div>
+
+    <div class="progressbar"><div id="progFill"></div></div>
+    <div class="quota">已消耗配额：<b id="quotaUsed">0</b> 单位　|　进度：<span id="progText">未开始</span></div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <!-- 结果 -->
+  <div class="card hidden" id="resultCard">
+    <h2>⑤ 结果</h2>
+    <p class="sub" id="resultSummary"></p>
+    <div class="toolbar">
+      <button class="btn green" id="btnExportCSV">导出 CSV（已勾选）</button>
+      <button class="btn ghost" id="btnExportAllCSV">导出 CSV（全部）</button>
+      <button class="btn ghost" id="btnCopyLinks">复制链接（已勾选）</button>
+      <button class="btn ghost" id="btnCopyTable">复制表格（全部）</button>
+      <button class="btn ghost" id="btnReport">生成分享报告</button>
+      <button class="btn ghost" id="btnSelectAll">全选 / 取消</button>
+    </div>
+    <div class="table-wrap">
+      <table id="resultTable">
+        <thead id="resultHead"></thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 历史筛选记录 -->
+  <div class="card" id="historyCard">
+    <h2>⑥ 历史筛选记录</h2>
+    <p class="sub">每次筛选出表后自动保存一条（含筛选要求 + 结果表）。数据只存在本机浏览器，不上传任何云端。</p>
+    <div class="toolbar">
+      <button class="btn ghost" id="btnClearHistory">清空全部历史</button>
+    </div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<script>
+/* ============ 关键词词典（沿用之前多轮挖掘验证过的规则） ============ */
+const MOBILE_WORDS = ["모바일","핸드폰","스마트폰","폰게임","안드로이드","아이폰","ios","android","모바게","원스토어","구글플레이","플레이스토어","앱게임","모바겜","리니지","오딘","아키에이지 워","검은사막 모바일","블랙클로버","쿠키런","브롤스타즈","배틀그라운드 모바일","배그 모바일","카트라이더 러쉬플러스","원신","니케","명일방주","프린세스 커넥트","에버소울","클래시","로얄","로드 모바일","미르","라그나로크","세븐나이츠","데스티니 차일드","레이븐","v4","달빛조각사","바람의나라","거상","그랜드체이스","붕괴","스타레일","명조","젠레스","나혼자만 레벨업","나혼렙","로드나인","아레스","퍼스트 디센던트","던전앤파이터 모바일","디아블로 이모탈","이모탈","무한대","아난타","일곱개의 대죄","7ds"];
+
+/* PC 端 / 主机端 内容关键词（用于平台前置判断，对立平台占比 > 50% 即排除） */
+const PC_WORDS = ["pc게임","pc 게임","pc판","pc버전","pc 버전","pc로","pc에서","steam","스팀","스팀게임","컴퓨터","컴게임","pc방","피시방","에픽게임즈","에픽스토어","피시","윈도우","배틀그라운드 pc","배그 pc"];
+const CONSOLE_WORDS = ["플스","플레이스테이션","ps5","ps4","ps3","엑스박스","xbox","닌텐도","스위치","nintendo","콘솔","닌텐도스위치"];
+
+/* ============ 多语翻译词典：把中文游戏/题材名翻成韩/英/日搜索词 ============
+ * - ZH_TO_TITLES: 游戏中文名 -> { ko: [], en: [] }
+ * - ZH_TO_GENRE: 题材中文词 -> { ko: [], en: [], ja: [] }
+ * - 命中后会附带"攻略/추천/추천/gaming"等通用后缀，召回更全
+ * - 词典里没有的概念，会兜底走"原文+空格+通用后缀"的保底生成方案
+ */
+const MOBILE_SUFFIX_KO = ["공략","추천","리뷰","플레이","게임"];
+const MOBILE_SUFFIX_EN = ["guide","gameplay","review","play","tutorial"];
+const MOBILE_SUFFIX_JA = ["攻略","おすすめ","レビュー","ゲーム"];
+const MOBILE_SUFFIX_CN = ["攻略","推荐","手游","游戏"];
+const ZH_TO_TITLES = {
+  "原神":{ko:["원신","genshin impact"],en:["Genshin Impact"],ja:["原神"],cn:["原神"]},
+  "鸣潮":{ko:["명조","명조 파문","Wuthering Waves"],en:["Wuthering Waves"],ja:["鳴潮"],cn:["鸣潮"]},
+  "崩坏星穹铁道":{ko:["붕괴 스타레일","스타레일","Honkai Star Rail"],en:["Honkai Star Rail","Star Rail"],ja:["崩壊スターレイル"],cn:["崩坏星穹铁道"]},
+  "绝区零":{ko:["젠레스","젠레스 제로","Zenless Zone Zero","ZZZ"],en:["Zenless Zone Zero","ZZZ"],ja:["ゼンレスゾーンゼロ"],cn:["绝区零"]},
+  "奥丁":{ko:["오딘","오딘 발할라 라이징","ODIN Valhalla"],en:["ODIN Valhalla Rising"],ja:["オーディン"],cn:["奥丁"]},
+  "王国纪元":{ko:["킹덤","모바일 킹덤"],en:["Kingdom"],ja:["キングダム"],cn:["王国纪元"]},
+  "奇迹2":{ko:["킹덤2","MIR2","미르2","신기2"],en:["MIR2","Mir 2"],ja:["MIR2"],cn:["奇迹2"]},
+  "阿斯达":{ko:["아스달","아스달 연대기","Arthdal Chronicles"],en:["Arthdal Chronicles"],ja:["アスダール"],cn:["阿斯达"]},
+  "洛奇":{ko:["로드나인","로아"],en:["Road Nine","LOA"],ja:["ロードナイン"],cn:["洛奇"]},
+  "苏尔之剑":{ko:["솔인챈트","Soul Inference"],en:["Soul Inference","SOL"],ja:["ソウル"],cn:["苏尔之剑"]},
+  "马夫诺纪":{ko:["마비노기","마비노기 모바일","Mabinogi"],en:["Mabinogi Mobile"],ja:["マビノギ"],cn:["马夫诺纪"]},
+  "卡巴拉":{ko:["카발","카발레도","Kabal"],en:["Kabal","Cabal"],ja:["キャバル"],cn:["卡巴拉"]},
+  "暗区突围":{ko:["디아블로","디아블로 이모탈","Diablo Immortal"],en:["Diablo Immortal"],ja:["ディアブロ イモータル"],cn:["暗黑破坏神"]},
+  "暗黑破坏神":{ko:["디아블로","디아블로 이모탈","Diablo Immortal"],en:["Diablo Immortal","Diablo"],ja:["ディアブロ"],cn:["暗黑破坏神"]},
+  "GTA":{ko:["GTA","그타","Grand Theft Auto"],en:["GTA","Grand Theft Auto","GTA San Andreas"],ja:["GTA","グランドセフトオート"],cn:["GTA"]},
+  "侠盗猎车":{ko:["GTA","그타","산안드레아스"],en:["GTA","Grand Theft Auto","GTA San Andreas"],ja:["GTA"],cn:["侠盗猎车手"]},
+  "圣安地列斯":{ko:["산안드레아스","GTA SA"],en:["GTA San Andreas"],ja:["サンアンドレアス"],cn:["圣安地列斯"]},
+  "黑帮":{ko:["갱스터","갱","갱단","마피아"],en:["gangster","mafia","crime","Gangstar"],ja:["ギャング","マフィア"],cn:["黑帮"]},
+  "黑手党":{ko:["마피아","마피아 게임"],en:["mafia","Mafia"],ja:["マフィア"],cn:["黑手党"]},
+  "Gangstar":{ko:["갱스터","Gangstar"],en:["Gangstar"],ja:["ギャングスター"],cn:["Gangstar"]},
+  "明日方舟":{ko:["명일방주","Arknights"],en:["Arknights"],ja:["アークナイツ"],cn:["明日方舟"]},
+  "少女前线":{ko:["소녀전선","Girls' Frontline"],en:["Girls' Frontline"],ja:["ドールズフロントライン"],cn:["少女前线"]},
+  "蔚蓝档案":{ko:["블루아카이브","Blue Archive"],en:["Blue Archive"],ja:["ブルーアーカイブ"],cn:["蔚蓝档案"]},
+  "崩坏3":{ko:["붕괴3","Honkai Impact"],en:["Honkai Impact 3rd"],ja:["崩壊3rd"],cn:["崩坏3"]},
+  "公主连结":{ko:["프린세스 커넥트","Princess Connect"],en:["Princess Connect","Priconne"],ja:["プリンセスコネクト"],cn:["公主连结"]},
+  "少女前线2":{ko:["소녀전선2","Girls' Frontline 2"],en:["Girls' Frontline 2","Snowbreak"],ja:["ドールズフロントライン2"],cn:["少女前线2"]},
+  "尘白禁区":{ko:["스노우 브레이크","Snowbreak"],en:["Snowbreak","Snowbreak Containment Zone"],ja:["スノーブレイク"],cn:["尘白禁区"]},
+  "胜利女神":{ko:["니케","승리의 여신","Nikke"],en:["Nikke","Goddess of Victory"],ja:["勝利の女神"],cn:["胜利女神"]},
+  "碧蓝航线":{ko:["벽람항로","Azur Lane"],en:["Azur Lane"],ja:["アズールレーン"],cn:["碧蓝航线"]},
+  "第五人格":{ko:["신원","Identity V"],en:["Identity V"],ja:["第五人格"],cn:["第五人格"]},
+  "黎明杀机":{ko:["데드 바이 데이라이트","Dead by Daylight"],en:["Dead by Daylight"],ja:["デッドバイデイライト"],cn:["黎明杀机"]},
+  "大逃杀":{ko:["배틀 로얄","배그","battle royale"],en:["battle royale"],ja:["バトルロワイアル"],cn:["大逃杀"]},
+  "吃鸡":{ko:["배틀 로얄","배그","배틀그라운드","PUBG"],en:["PUBG","Battlegrounds"],ja:["PUBG"],cn:["吃鸡"]},
+  "和平精英":{ko:["배그","배틀그라운드","PUBG Mobile"],en:["PUBG Mobile"],ja:["PUBG モバイル"],cn:["和平精英"]},
+  "王者荣耀":{ko:["왕좌의 게임","롤","모바일 레전드","리그 오브 레전드"],en:["League of Legends","Wild Rift"],ja:["リーグ・オブ・レジェンド"],cn:["王者荣耀"]},
+  "英雄联盟手游":{ko:["와일드 리프트","롤 모바일","LoL Wild Rift"],en:["Wild Rift","League of Legends Mobile"],ja:["ワイルドリフト"],cn:["英雄联盟手游"]},
+  "FIFA":{ko:["피파","FC 모바일","FC Online"],en:["FC Mobile","FC 25","eFootball"],ja:["FCモバイル"],cn:["FIFA足球世界"]},
+  "实况足球":{ko:["e풋볼","efootball","PES 모바일"],en:["eFootball","PES"],ja:["eFootball"],cn:["实况足球"]},
+  "街头篮球":{ko:["스트리트 농구","freestyle basketball"],en:["street basketball"],ja:["ストリートバスケット"],cn:["街头篮球"]},
+  "黑色行动":{ko:["콜 오브 듀티","콜옵","COD Mobile"],en:["Call of Duty Mobile","COD Mobile"],ja:["コールオブデューティ"],cn:["使命召唤"]},
+  "使命召唤":{ko:["콜옵","COD","콜 오브 듀티 모바일"],en:["COD Mobile","Call of Duty"],ja:["コールオブデューティ"],cn:["使命召唤"]},
+  "堡垒之夜":{ko:["포트나이트","Fortnite"],en:["Fortnite"],ja:["フォートナイト"],cn:["堡垒之夜"]},
+  "我的世界":{ko:["마인크래프트","Minecraft"],en:["Minecraft"],ja:["マインクラフト"],cn:["我的世界"]},
+  "赛博朋克":{ko:["사이버펑크 2077","사이버펑크"],en:["Cyberpunk 2077"],ja:["サイバーパンク"],cn:["赛博朋克"]},
+  "最终幻想":{ko:["파이널 판타지","FF","Final Fantasy"],en:["Final Fantasy","FF"],ja:["ファイナルファンタジー"],cn:["最终幻想"]},
+  "七骑士":{ko:["세븐나이츠","Seven Knights"],en:["Seven Knights"],ja:["セブンナイツ"],cn:["七骑士"]},
+  "传世":{ko:["원조","미르","레전드 오브 미르","Legend of Mir"],en:["Legend of Mir"],ja:["レジェンドオブミール"],cn:["传世"]},
+  "地下城与勇士":{ko:["던전앤파이터","DNF Mobile"],en:["DNF Mobile"],ja:["ダンジョン＆ファイター"],cn:["地下城与勇士"]},
+  "永恒之塔":{ko:["아이온","Aion"],en:["Aion"],ja:["アイオン"],cn:["永恒之塔"]},
+  "原神":{ko:["원신","Genshin Impact"],en:["Genshin Impact"]},
+  "无期迷途":{ko:["무한대","Path to Nowhere"],en:["Path to Nowhere"],ja:["パズトノーホエア"],cn:["无期迷途"]},
+  "异能都市":{ko:["아난타","Ananta"],en:["Ananta"],ja:["アナンタ"],cn:["异能都市"]},
+  "二重螺旋":{ko:["아르케나"],en:["Doppelganger"],ja:["二重螺旋"],cn:["二重螺旋"]},
+  "二重星":{ko:["듀얼 스타"],en:["Dual Star"],ja:["二重星"],cn:["二重星"]},
+  "代号世界":{ko:["엔드필드","명일방주 엔드필드","Endfield"],en:["Endfield","Arknights Endfield"],ja:["エンドフィールド"],cn:["明日方舟终末地"]},
+  "天命":{ko:["명일방주","엔드필드","명일방주 엔드필드"],en:["Arknights","Arknights Endfield"],ja:["アークナイツ","エンドフィールド"],cn:["明日方舟","终末地"]},
+  "勇者斗恶龙":{ko:["드래곤 퀘스트","Dragon Quest"],en:["Dragon Quest"],ja:["ドラゴンクエスト"],cn:["勇者斗恶龙"]},
+  "零之轨迹":{ko:["제로 트레일","Sen no Kiseki"],en:["Trails","Zero no Kiseki"],ja:["軌跡シリーズ"],cn:["零之轨迹"]},
+  "荒岛求生":{ko:["로스트아크","Lost Ark"],en:["Lost Ark"],ja:["ロストアーク"],cn:["失落的方舟"]}
+};
+/* ============ 中文概念词 → 各语言搜索词 ============
+ * 取词原则：不直译中文，而是查证该品类在韩国手游玩家 / 手游 YouTuber 语境里的真实叫法。
+ * 典型例子：
+ *   · 二次元游戏 → 서브컬처 게임 / 미소녀 게임（直译 이차원 在韩国游戏圈几乎没人搜）
+ *   · MOBA      → MOBA / AOS（AOS 是韩国特有叫法，必须补上）
+ *   · 挂机/放置  → 방치형 / 자동 사냥 / 오토 사냥
+ *   · 抽卡      → 가챠 / 뽑기 / 픽업
+ *   · 经营类    → 경영 시뮬레이션 / 타이쿤（타이쿤 是韩国极高频口语）
+ *   · 魂系      → 소울라이크（音译借词，非 직역）
+ */
+const ZH_TO_GENRE = {
+  /* —— 预设词包 · 51 个副品类精确匹配（放最前面，保证长名字不被拆成泛词） —— */
+  "回合制RPG":{ko:["턴제 RPG","턴제 게임","턴제 모바일 RPG"],en:["turn-based RPG","turn based rpg"],ja:["ターン制RPG"],cn:["回合制RPG"]},
+  "即时RPG":{ko:["실시간 RPG","실시간 전투 RPG","논타겟 RPG"],en:["real-time RPG","action combat RPG"],ja:["リアルタイムRPG"],cn:["即时RPG"]},
+  "ARPG动作角色扮演":{ko:["액션 RPG","ARPG","핵앤슬래시"],en:["action RPG","ARPG"],ja:["アクションRPG"],cn:["ARPG动作角色扮演"]},
+  "MMORPG大型多人在线RPG":{ko:["MMORPG","모바일 MMORPG","대작 MMORPG"],en:["MMORPG","mobile MMORPG"],ja:["MMORPG"],cn:["MMORPG大型多人在线RPG"]},
+  "放置RPG":{ko:["방치형 RPG","방치형 게임","자동 사냥 RPG"],en:["idle RPG","afk RPG"],ja:["放置RPG"],cn:["放置RPG"]},
+  "卡牌RPG":{ko:["카드 RPG","수집형 RPG","카드 수집 RPG"],en:["card RPG","gacha RPG"],ja:["カードRPG"],cn:["卡牌RPG"]},
+  "开放世界RPG":{ko:["오픈월드 RPG","오픈월드 게임","자유도 높은 RPG"],en:["open world RPG"],ja:["オープンワールドRPG"],cn:["开放世界RPG"]},
+  "roguelike-RPG":{ko:["로그라이크","로그라이크 RPG","로그라이크 게임"],en:["roguelike","roguelite"],ja:["ローグライク"],cn:["roguelike-RPG"]},
+  "SLG（策略生存/战争策略）":{ko:["전략 시뮬레이션","SLG","SLG 게임","전쟁 전략 게임"],en:["SLG","strategy game","war strategy game"],ja:["SLG"],cn:["SLG（策略生存/战争策略）"]},
+  "RTS即时战略":{ko:["RTS","실시간 전략 게임","RTS 게임"],en:["RTS","real-time strategy"],ja:["RTS"],cn:["RTS即时战略"]},
+  "战棋/战棋SRPG":{ko:["SRPG","전략 RPG","전술 RPG"],en:["SRPG","tactical RPG"],ja:["SRPG"],cn:["战棋/战棋SRPG"]},
+  "塔防":{ko:["타워 디펜스","타워디펜스 게임","디펜스 게임"],en:["tower defense","TD game"],ja:["タワーディフェンス"],cn:["塔防"]},
+  "4X策略":{ko:["4X 전략 게임","4X 게임","정복 전략 게임"],en:["4X strategy game"],ja:["4X"],cn:["4X策略"]},
+  "收集卡牌":{ko:["수집형 카드 게임","카드 수집 게임","카드 게임"],en:["collectible card game","card collector"],ja:["カード収集ゲーム"],cn:["收集卡牌"]},
+  "TCG集换式卡牌":{ko:["TCG","트레이딩 카드 게임","TCG 카드 게임"],en:["TCG","trading card game"],ja:["TCG"],cn:["TCG集换式卡牌"]},
+  "CCG构筑卡牌":{ko:["덱빌딩 게임","CCG","덱 빌딩 카드 게임"],en:["deck building game","CCG"],ja:["デッキ構築ゲーム"],cn:["CCG构筑卡牌"]},
+  "卡牌放置":{ko:["방치형 카드 게임","카드 방치형 게임","방치형 게임"],en:["idle card game"],ja:["放置カードゲーム"],cn:["卡牌放置"]},
+  "FPS第一人称射击":{ko:["FPS","1인칭 슈팅 게임","FPS 게임"],en:["FPS","first person shooter"],ja:["FPS"],cn:["FPS第一人称射击"]},
+  "TPS第三人称射击":{ko:["TPS","3인칭 슈팅 게임","TPS 게임"],en:["TPS","third person shooter"],ja:["TPS"],cn:["TPS第三人称射击"]},
+  "射击生存":{ko:["서바이벌 슈팅","생존 슈팅 게임","익스트랙션 슈터"],en:["survival shooter","extraction shooter"],ja:["サバイバルシューティング"],cn:["射击生存"]},
+  "休闲射击":{ko:["캐주얼 슈팅 게임","가벼운 슈팅 게임","슈팅 게임"],en:["casual shooter"],ja:["カジュアルシューティング"],cn:["休闲射击"]},
+  "MOBA多人在线竞技":{ko:["AOS","AOS 게임","MOBA","MOBA 게임"],en:["MOBA","AOS"],ja:["MOBA"],cn:["MOBA多人在线竞技"]},
+  "大逃杀/吃鸡":{ko:["배틀 로얄","배틀로얄 게임","서바이벌 배틀 게임"],en:["battle royale"],ja:["バトルロイヤル"],cn:["大逃杀/吃鸡"]},
+  "模拟经营":{ko:["경영 시뮬레이션","경영 게임","타이쿤 게임"],en:["tycoon game","management sim"],ja:["経営シミュレーション"],cn:["模拟经营"]},
+  "生活模拟":{ko:["라이프 시뮬레이션","인생 시뮬레이션","일상 시뮬레이션"],en:["life simulation game"],ja:["ライフシミュレーション"],cn:["生活模拟"]},
+  "建造模拟":{ko:["건설 시뮬레이션","건축 게임","짓기 게임"],en:["building simulation game"],ja:["建築シミュレーション"],cn:["建造模拟"]},
+  "城市建造":{ko:["도시 건설 게임","도시 만들기 게임","시티 빌딩 게임","도시 시뮬레이션"],en:["city builder game"],ja:["シティビルダー"],cn:["城市建造"]},
+  "农场模拟":{ko:["농장 시뮬레이션","농사 게임","목장 게임"],en:["farming simulation game"],ja:["牧場シミュレーション"],cn:["农场模拟"]},
+  "三消":{ko:["매치3","매치3 게임","3매치 퍼즐"],en:["match 3","match three"],ja:["マッチ3"],cn:["三消"]},
+  "消除":{ko:["매치 게임","블록 퍼즐","캐주얼 퍼즐"],en:["match puzzle","puzzle match"],ja:["パズルゲーム"],cn:["消除"]},
+  "解谜":{ko:["퍼즐 게임","추리 퍼즐","추리 게임","두뇌 게임"],en:["puzzle game"],ja:["パズルゲーム"],cn:["解谜"]},
+  "跑酷":{ko:["러너 게임","달리기 게임","런 게임","점프 액션 게임"],en:["runner game","endless runner"],ja:["ランナーゲーム"],cn:["跑酷"]},
+  "合成":{ko:["머지 게임","합성 게임","병합 게임","머지 퍼즐"],en:["merge game"],ja:["マージゲーム"],cn:["合成"]},
+  "IO休闲":{ko:[".io 게임","io 게임","아케이드 게임"],en:[".io game","io game"],ja:["ioゲーム"],cn:["IO休闲"]},
+  "超休闲":{ko:["하이퍼 캐주얼 게임","초간단 게임","간단한 게임"],en:["hyper casual game"],ja:["ハイパーカジュアル"],cn:["超休闲"]},
+  "音乐节奏":{ko:["리듬 게임","음악 게임","리듬 액션 게임"],en:["rhythm game","music game"],ja:["リズムゲーム"],cn:["音乐节奏"]},
+  "横版动作":{ko:["횡스크롤 액션","사이드 액션 게임","2D 액션 게임"],en:["side scrolling action","2D action"],ja:["横スクロールアクション"],cn:["横版动作"]},
+  "格斗":{ko:["격투 게임","대전 격투 게임","싸움 게임","격투 액션"],en:["fighting game"],ja:["格闘ゲーム"],cn:["格斗"]},
+  "魂类":{ko:["소울라이크","소울라이크 게임","다크 판타지 액션"],en:["soulslike","souls-like"],ja:["ソウルライク"],cn:["魂类"]},
+  "清版闯关":{ko:["진행형 액션","벨트 스크롤 액션","다수 적 액션","beat'em up"],en:["beat em up","brawler"],ja:["ベルトスクロールアクション"],cn:["清版闯关"]},
+  "沙盒":{ko:["샌드박스 게임","자유 건축 게임","블록 게임","샌드박스"],en:["sandbox game"],ja:["サンドボックス"],cn:["沙盒"]},
+  "GTA-like都市开放世界":{ko:["GTA라이크","GTA 같은 게임","도시 오픈월드 게임"],en:["GTA like game","GTA style"],ja:["GTA系"],cn:["GTA-like都市开放世界"]},
+  "生存开放世界":{ko:["서바이벌 오픈월드","생존 게임","오픈월드 서바이벌"],en:["survival open world"],ja:["サバイバルオープンワールド"],cn:["生存开放世界"]},
+  "叙事解谜":{ko:["스토리 퍼즐 게임","추리 어드벤처","미스터리 게임"],en:["narrative puzzle game","mystery game"],ja:["ミステリーゲーム"],cn:["叙事解谜"]},
+  "密室解谜":{ko:["방탈출 게임","탈출 게임","방탈출 퍼즐"],en:["escape room game","room escape"],ja:["脱出ゲーム"],cn:["密室解谜"]},
+  "点击解谜":{ko:["포인트 앤 클릭","클릭 어드벤처","포인트 클릭 게임"],en:["point and click game"],ja:["ポイントアンドクリック"],cn:["点击解谜"]},
+  "赛车竞速":{ko:["레이싱 게임","자동차 레이싱","카 레이싱 게임"],en:["racing game","car racing"],ja:["レーシングゲーム"],cn:["赛车竞速"]},
+  "摩托竞速":{ko:["오토바이 레이싱","바이크 레이싱 게임","모터사이클 게임"],en:["motorcycle racing game","bike racing"],ja:["バイクレーシング"],cn:["摩托竞速"]},
+  "叙事冒险":{ko:["스토리 어드벤처","이야기 게임","인터랙티브 스토리"],en:["narrative adventure game","story game"],ja:["ストーリーアドベンチャー"],cn:["叙事冒险"]},
+  "像素冒险":{ko:["픽셀 어드벤처","도트 게임","픽셀 게임"],en:["pixel adventure game","pixel art game"],ja:["ピクセルアドベンチャー"],cn:["像素冒险"]},
+  "视觉小说AVG":{ko:["비주얼 노벨","AVG 게임","텍스트 어드벤처"],en:["visual novel"],ja:["ビジュアルノベル"],cn:["视觉小说AVG"]},
+  /* —— 综合通用 —— */
+  "手游":{ko:["모바일 게임","모바일게임"],en:["mobile game","mobile games"],ja:["スマホゲーム"],cn:["手游","手机游戏"]},
+  "手机游戏":{ko:["모바일 게임","모바일게임"],en:["mobile game"],ja:["スマホゲーム"],cn:["手机游戏"]},
+  "综合手游":{ko:["모바일 게임 추천","모바일 게임 순위","재밌는 모바일 게임"],en:["mobile game recommendation"],ja:["スマホゲーム おすすめ"],cn:["手机游戏推荐"]},
+  "新游":{ko:["신작 게임","신작 모바일 게임"],en:["new game","new mobile game"],ja:["新作ゲーム"],cn:["新游"]},
+  "新游首发":{ko:["신작 게임 리뷰","출시 예정 게임","사전예약 게임"],en:["new release game","upcoming game"],ja:["新作ゲーム"],cn:["新游首发"]},
+  "攻略":{ko:["공략","게임 공략","가이드"],en:["guide","walkthrough"],ja:["攻略"],cn:["攻略"]},
+  "测评":{ko:["리뷰","게임 리뷰","평가"],en:["review"],ja:["レビュー"],cn:["测评"]},
+  "零氪":{ko:["무과금","무과금 게임","가성비 게임"],en:["free to play","f2p"],ja:["無課金"],cn:["零氪"]},
+  "无氪金":{ko:["무과금 게임 추천","가성비 게임 추천"],en:["f2p friendly game"],ja:["無課金 おすすめ"],cn:["零氪"]},
+  "肝度":{ko:["노가다 게임","과금 효율","템세팅"],en:["grind","grinding"],ja:["周回"],cn:["肝度"]},
+  "资讯":{ko:["게임 뉴스","게임 소식","게임 업데이트 소식"],en:["game news","gaming news"],ja:["ゲーム ニュース"],cn:["游戏资讯"]},
+
+  /* —— RPG —— */
+  "角色扮演":{ko:["RPG","롤플레잉","RPG 게임"],en:["RPG","role playing game"],ja:["RPG","ロールプレイング"],cn:["角色扮演"]},
+  "RPG":{ko:["RPG","모바일 RPG"],en:["RPG","mobile RPG"],ja:["RPG"],cn:["RPG"]},
+  "MMORPG":{ko:["MMORPG","대작 MMORPG","모바일 MMORPG"],en:["MMORPG","mobile MMORPG"],ja:["MMORPG"],cn:["MMORPG"]},
+  "大型多人":{ko:["MMORPG","대작 MMORPG","국가전 게임"],en:["MMORPG"],ja:["MMORPG"],cn:["大型多人"]},
+  "国战":{ko:["국가전 게임","국가전 MMORPG"],en:["nation war game"],ja:["国戦ゲーム"],cn:["国战"]},
+  "开放世界":{ko:["오픈월드","오픈월드 게임","자유도 높은 게임"],en:["open world","open world game"],ja:["オープンワールド"],cn:["开放世界"]},
+  "高自由度":{ko:["자유도 높은 게임","오픈월드","샌드박스"],en:["open world sandbox","high freedom"],ja:["自由度の高いゲーム"],cn:["高自由度"]},
+  "二次元":{ko:["서브컬처 게임","미소녀 게임","애니풍 게임"],en:["anime game","anime style game"],ja:["二次元ゲーム"],cn:["二次元"]},
+  "美少女":{ko:["미소녀 게임","미소녀 RPG"],en:["anime girl game"],ja:["美少女ゲーム"],cn:["美少女"]},
+  "异世界":{ko:["이세계 게임","이세계 RPG"],en:["isekai game"],ja:["異世界ゲーム"],cn:["异世界"]},
+  "回合制":{ko:["턴제 RPG","턴제 게임"],en:["turn-based RPG"],ja:["ターン制RPG"],cn:["回合制"]},
+  "战棋":{ko:["SRPG","전략 RPG"],en:["tactical RPG","SRPG"],ja:["SRPG","シミュレーションRPG"],cn:["战棋"]},
+  "动作RPG":{ko:["액션 RPG","ARPG"],en:["action RPG","ARPG"],ja:["アクションRPG"],cn:["动作RPG"]},
+  "ARPG":{ko:["액션 RPG","ARPG","핵앤슬래시"],en:["ARPG","action RPG"],ja:["ARPG"],cn:["ARPG"]},
+  "刷宝":{ko:["파밍 게임","아이템 파밍","핵앤슬래시"],en:["loot game","looter","farming"],ja:["ハクスラ"],cn:["刷宝"]},
+  "打怪升级":{ko:["사냥 게임","육성 RPG","레벨업 게임"],en:["grinding RPG"],ja:["レベル上げゲーム"],cn:["打怪升级"]},
+
+  /* —— 策略 —— */
+  "策略":{ko:["전략 게임","전략 시뮬레이션"],en:["strategy game"],ja:["戦略ゲーム"],cn:["策略"]},
+  "SLG":{ko:["SLG","전략 게임","전략 시뮬레이션"],en:["SLG","strategy game"],ja:["SLG"],cn:["SLG"]},
+  "战争策略":{ko:["전쟁 전략 게임","전쟁 게임","병법 게임"],en:["war strategy game"],ja:["戦争シミュレーション"],cn:["战争策略"]},
+  "4X":{ko:["4X 전략 게임","점령전 게임","국가 경영 게임"],en:["4X strategy game"],ja:["4X"],cn:["4X"]},
+  "即时战略":{ko:["RTS","실시간 전략 게임"],en:["RTS","real-time strategy"],ja:["RTS"],cn:["即时战略"]},
+  "RTS":{ko:["RTS","실시간 전략 게임"],en:["RTS"],ja:["RTS"],cn:["RTS"]},
+
+  /* —— 卡牌 —— */
+  "卡牌":{ko:["카드 게임","수집형 RPG","카드 RPG"],en:["card game","deck building"],ja:["カードゲーム"],cn:["卡牌"]},
+  "收集":{ko:["수집형 게임","수집형 RPG","캐릭터 수집 게임"],en:["collection game","collectible"],ja:["コレクションゲーム"],cn:["收集"]},
+  "收集型":{ko:["수집형 RPG","수집형 게임","캐릭터 수집 게임"],en:["collectible RPG"],ja:["収集型ゲーム"],cn:["收集型"]},
+  "抽卡":{ko:["가챠","뽑기","픽업"],en:["gacha","pull","banner"],ja:["ガチャ"],cn:["抽卡"]},
+  "扭蛋":{ko:["가챠","뽑기"],en:["gacha"],ja:["ガチャ"],cn:["扭蛋"]},
+  "对战卡牌":{ko:["카드 배틀 게임","TCG","카드 대전 게임"],en:["trading card game","TCG"],ja:["カードバトル"],cn:["对战卡牌"]},
+  "CCG":{ko:["TCG","카드 배틀 게임"],en:["CCG","TCG"],ja:["TCG"],cn:["CCG"]},
+  "卡组构筑":{ko:["덱 빌딩 게임","덱 공략"],en:["deck building game"],ja:["デッキ構築"],cn:["卡组构筑"]},
+
+  /* —— 射击 —— */
+  "射击":{ko:["슈팅 게임","총게임","FPS"],en:["shooting game","shooter"],ja:["シューティングゲーム"],cn:["射击"]},
+  "FPS":{ko:["FPS","1인칭 슈팅","FPS 게임"],en:["FPS","first person shooter"],ja:["FPS"],cn:["FPS"]},
+  "TPS":{ko:["TPS","3인칭 슈팅","TPS 게임"],en:["TPS","third person shooter"],ja:["TPS"],cn:["TPS"]},
+  "吃鸡":{ko:["배틀 로얄","배틀 로얄 게임","배그","배틀그라운드 모바일"],en:["battle royale"],ja:["バトルロイヤル"],cn:["吃鸡"]},
+  "大逃杀":{ko:["배틀 로얄","배틀 로얄 게임"],en:["battle royale"],ja:["バトルロイヤル"],cn:["大逃杀"]},
+  "战术竞技":{ko:["배틀 로얄 게임","생존 슈팅 게임"],en:["battle royale"],ja:["バトルロイヤル"],cn:["战术竞技"]},
+  "撤离射击":{ko:["익스트랙션 슈터","탈출 슈팅 게임","생존 슈터"],en:["extraction shooter"],ja:["脱出シューター"],cn:["撤离射击"]},
+
+  /* —— 竞技 —— */
+  "竞技":{ko:["경쟁 게임","PvP","대전 게임"],en:["competitive","PvP"],ja:["対戦ゲーム","競技"],cn:["竞技"]},
+  "MOBA":{ko:["AOS","AOS 게임","MOBA","5대5 게임"],en:["MOBA","AOS"],ja:["MOBA"],cn:["MOBA"]},
+  "自走棋":{ko:["오토 체스","오토배틀러","자동 전투 게임"],en:["auto battler","auto chess"],ja:["オートチェス"],cn:["自走棋"]},
+  "派对游戏":{ko:["파티 게임","캐주얼 대전 게임","멀티 대전 게임"],en:["party game"],ja:["パーティーゲーム"],cn:["派对游戏"]},
+  "电竞":{ko:["e스포츠","e스포츠 게임","대회 게임"],en:["esports"],ja:["eスポーツ"],cn:["电竞"]},
+  "PVP":{ko:["PvP","대전 게임","길드전"],en:["PvP"],ja:["PvP"],cn:["PVP"]},
+
+  /* —— 模拟经营 —— */
+  "模拟":{ko:["시뮬레이션","시뮬 게임"],en:["simulation game","sim"],ja:["シミュレーションゲーム"],cn:["模拟"]},
+  "经营":{ko:["경영 시뮬레이션","경영 게임","타이쿤 게임"],en:["tycoon game","management sim"],ja:["経営シミュレーション"],cn:["经营"]},
+  "放置":{ko:["방치형 게임","방치형 RPG","자동 사냥 게임"],en:["idle game"],ja:["放置ゲーム"],cn:["放置"]},
+  "挂机":{ko:["방치형 게임","오토 사냥 게임","자동 사냥"],en:["idle game","auto grind"],ja:["放置ゲーム"],cn:["挂机"]},
+  "养成":{ko:["육성 게임","키우기 게임","캐릭터 육성 게임"],en:["raising sim","training game"],ja:["育成ゲーム"],cn:["养成"]},
+  "农场":{ko:["농장 게임","농사 게임"],en:["farming sim"],ja:["農場ゲーム"],cn:["农场"]},
+  "餐厅":{ko:["요리 게임","레스토랑 게임","카페 게임"],en:["cooking game","restaurant game"],ja:["レストランゲーム"],cn:["餐厅"]},
+
+  /* —— 休闲益智 —— */
+  "休闲":{ko:["캐주얼 게임","가벼운 게임","간단한 모바일 게임"],en:["casual game"],ja:["カジュアルゲーム"],cn:["休闲"]},
+  "逃脱":{ko:["방탈출 게임","탈출 게임"],en:["escape room game"],ja:["脱出ゲーム"],cn:["逃脱"]},
+  "治愈":{ko:["힐링 게임","감성 게임"],en:["relaxing game","cozy game"],ja:["癒しゲーム"],cn:["治愈"]},
+  "小游戏":{ko:["간단한 게임","심심풀이 게임","캐주얼 게임"],en:["mini games","hyper casual"],ja:["ミニゲーム"],cn:["小游戏"]},
+
+  /* —— 动作冒险 —— */
+  "动作":{ko:["액션 게임","모바일 액션","타격감 좋은 게임"],en:["action game"],ja:["アクションゲーム"],cn:["动作"]},
+  "横版":{ko:["횡스크롤 액션","횡스크롤 게임"],en:["side scrolling action"],ja:["横スクロールアクション"],cn:["横版"]},
+  "魂系":{ko:["소울라이크","다크 판타지 액션 게임"],en:["soulslike"],ja:["ソウルライク"],cn:["魂系"]},
+  "硬核":{ko:["소울라이크","어려운 액션 게임","하드코어 게임"],en:["hardcore game","soulslike"],ja:["硬派ゲーム"],cn:["硬核"]},
+  "肉鸽":{ko:["로그라이크","로그라이크 게임"],en:["roguelike"],ja:["ローグライク"],cn:["肉鸽"]},
+  "Roguelike":{ko:["로그라이크","로그라이크 게임"],en:["roguelike"],ja:["ローグライク"],cn:["肉鸽"]},
+  "冒险":{ko:["어드벤처 게임","모험 게임","탐험 게임"],en:["adventure game"],ja:["アドベンチャーゲーム"],cn:["冒险"]},
+  "探索":{ko:["탐험 게임","어드벤처 게임"],en:["exploration game"],ja:["探索ゲーム"],cn:["探索"]},
+  "割草":{ko:["핵앤슬래시","몰려드는 적 막는 게임"],en:["hack and slash"],ja:["無双系"],cn:["割草"]},
+
+  /* —— 沙盒生存 —— */
+  "建造":{ko:["크래프팅 게임","건설 게임"],en:["crafting game","building game"],ja:["クラフトゲーム"],cn:["建造"]},
+  "生存":{ko:["생존 게임","서바이벌 게임"],en:["survival game"],ja:["サバイバルゲーム"],cn:["生存"]},
+  "生存建造":{ko:["생존 게임","서바이벌 크래프트"],en:["survival crafting game"],ja:["サバイバルクラフト"],cn:["生存建造"]},
+  "僵尸":{ko:["좀비 게임","좀비 생존 게임"],en:["zombie game"],ja:["ゾンビゲーム"],cn:["僵尸"]},
+
+  /* —— 竞速体育 —— */
+  "竞速":{ko:["레이싱 게임","드라이빙 게임"],en:["racing game"],ja:["レーシングゲーム"],cn:["竞速"]},
+  "赛车":{ko:["레이싱 게임","카 레이싱","자동차 게임"],en:["racing game","car game"],ja:["レーシングゲーム"],cn:["赛车"]},
+  "体育":{ko:["스포츠 게임"],en:["sports game"],ja:["スポーツゲーム"],cn:["体育"]},
+  "足球":{ko:["축구 게임","피파 모바일","e풋볼"],en:["soccer game","football game"],ja:["サッカーゲーム"],cn:["足球"]},
+  "篮球":{ko:["농구 게임"],en:["basketball game"],ja:["バスケゲーム"],cn:["篮球"]},
+  "棒球":{ko:["야구 게임"],en:["baseball game"],ja:["野球ゲーム"],cn:["棒球"]},
+  "高尔夫":{ko:["골프 게임"],en:["golf game"],ja:["ゴルフゲーム"],cn:["高尔夫"]},
+
+  /* —— 恐怖悬疑 —— */
+  "恐怖":{ko:["호러 게임","공포 게임","무서운 게임"],en:["horror game"],ja:["ホラーゲーム"],cn:["恐怖"]},
+  "悬疑":{ko:["미스터리 게임","심리 호러 게임"],en:["mystery game"],ja:["ミステリーゲーム"],cn:["悬疑"]},
+  "推理":{ko:["추리 게임","미스터리 게임"],en:["detective game","mystery game"],ja:["推理ゲーム"],cn:["推理"]},
+  "侦探":{ko:["탐정 게임","수사 게임"],en:["detective game"],ja:["探偵ゲーム"],cn:["侦探"]},
+  "怪谈":{ko:["괴담 게임","도시전설 게임"],en:["urban legend horror game"],ja:["怪談ゲーム"],cn:["怪谈"]},
+
+  /* —— 黑帮犯罪 —— */
+  "黑帮":{ko:["갱스터 게임","갱단 게임","조폭 게임"],en:["gangster game"],ja:["ギャングゲーム"],cn:["黑帮"]},
+  "帮派":{ko:["갱스터 게임","갱단 게임","조폭 게임"],en:["gang game","gangster"],ja:["ギャング"],cn:["帮派"]},
+  "犯罪":{ko:["범죄 게임","도시 범죄 게임"],en:["crime game"],ja:["犯罪ゲーム"],cn:["犯罪"]},
+  "都市":{ko:["도시 배경 게임","시가지 게임"],en:["urban game","city game"],ja:["都市ゲーム"],cn:["都市"]},
+  "GTA":{ko:["GTA","지티에이","그타"],en:["GTA","Grand Theft Auto"],ja:["GTA"],cn:["GTA"]},
+  "侠盗":{ko:["GTA","지티에이 모바일"],en:["GTA","grand theft auto"],ja:["GTA"],cn:["侠盗猎车"]},
+  "警匪":{ko:["경찰 게임","도주 게임","경찰 추격 게임"],en:["cops and robbers game"],ja:["警察ごっこゲーム"],cn:["警匪"]},
+  "抢劫":{ko:["강도 게임","하이스트 게임"],en:["heist game","robbery game"],ja:["強盗ゲーム"],cn:["抢劫"]},
+  "黑手党":{ko:["마피아 게임"],en:["mafia game"],ja:["マフィアゲーム"],cn:["黑手党"]},
+
+  /* —— 画风 / 其他 —— */
+  "卡通":{ko:["카툰 게임","귀여운 게임"],en:["cartoon game","stylized"],ja:["カートゥーンゲーム"],cn:["卡通"]},
+  "像素":{ko:["픽셀 게임","도트 게임","레트로 게임"],en:["pixel game","retro"],ja:["ピクセルゲーム","ドットゲーム"],cn:["像素"]},
+  "复古":{ko:["레트로 게임","복고풍 게임"],en:["retro game"],ja:["レトロゲーム"],cn:["复古"]},
+  "恋爱":{ko:["연애 시뮬레이션","연애 게임"],en:["dating sim","otome game"],ja:["恋愛ゲーム"],cn:["恋爱"]},
+  "乙女":{ko:["연애 시뮬레이션","미소녀 연애 게임"],en:["otome game"],ja:["乙女ゲーム"],cn:["乙女"]},
+  "音游":{ko:["리듬 게임","음악 게임"],en:["rhythm game"],ja:["音ゲー","リズムゲーム"],cn:["音游"]},
+  "视觉小说":{ko:["비주얼 노벨","AVG 게임","스토리 중심 게임"],en:["visual novel","VN"],j:["ビジュアルノベル"],cn:["视觉小说"]},
+  "恋爱模拟":{ko:["연애 시뮬레이션"],en:["dating sim"],ja:["恋愛シミュレーション"],cn:["恋爱模拟"]},
+  "联机":{ko:["멀티플레이 게임","협동 게임","같이 하는 게임"],en:["multiplayer game","co-op"],ja:["マルチプレイ"],cn:["联机"]},
+  "单机":{ko:["싱글플레이 게임","오프라인 게임"],en:["single player game","offline game"],ja:["オフラインゲーム"],cn:["单机"]},
+  "怀旧":{ko:["추억의 게임","레트로 게임","고전 게임"],en:["classic game","nostalgic game"],ja:["懐かしのゲーム"],cn:["怀旧"]}
+};
+
+/* ============ 英文概念词 → 韩文翻译词典（用于词包输入英文时自动翻译） ============
+ * - 当用户在「中文概念词」框输入英文（如 gangstar、gta、open world）时，
+ *   先用此表翻成韩文，再走 ZH_TO_TITLES / ZH_TO_GENRE 的完整翻译链路。
+ * - 值是韩文字符串数组，对应 ZH_TO_TITLES 的 ko 字段格式。
+ * - 未命中的英文词仍会走保底生成（原文 + 后缀），只是不再漏掉韩文翻译。
+ */
+const EN_TO_KO = {
+  "gangstar": ["갱스터", "Gangstar"],
+  "gta": ["GTA", "그타", "Grand Theft Auto"],
+  "grand theft auto": ["GTA", "Grand Theft Auto"],
+  "mafia": ["마피아", "mafia"],
+  "crime": ["범죄", "crime"],
+  "open world": ["오픈월드", "open world"],
+  "fps": ["FPS", "fps 게임"],
+  "shooting": ["슈팅", "총게임", "shooting"],
+  "battle royale": ["배틀 로얄", "battle royale"],
+  "pubg": ["배그", "배틀그라운드", "PUBG"],
+  "rpg": ["RPG", "액션 RPG"],
+  "mmorpg": ["MMORPG", "대작 MMORPG"],
+  "action": ["액션", "액션 게임"],
+  "anime": ["이차원", "애니메이션", "anime"],
+  "gacha": ["가챠", "뽑기", "gacha"],
+  "survival": ["서바이벌", "생존게임"],
+  "racing": ["레이싱", "racing"],
+  "sports": ["스포츠", "sports"],
+  "strategy": ["전략", "strategy"],
+  "simulation": ["시뮬레이션", "simulation"],
+  "casual": ["캐주얼", "casual"],
+  "puzzle": ["퍼즐", "puzzle"],
+  "horror": ["공포", "호러"],
+  "pixel": ["픽셀", "레트로", "pixel"],
+  "mobile game": ["모바일 게임", "모바일게임"],
+  "genshin": ["원신", "Genshin Impact"],
+  "nikke": ["니케", "승리의 여신", "Nikke"],
+  "honkai star rail": ["붕괴 스타레일", "스타레일"],
+  "wuthering waves": ["명조", "Wuthering Waves"],
+  "zenless zone zero": ["젠레스", "젠레스 제로"],
+  "odin": ["오딘", "오딘 발할라 라이징"],
+  "blue archive": ["블루아카이브", "Blue Archive"],
+  "arknights": ["명일방주", "Arknights"],
+  "girls frontline": ["소녀전선", "Girls' Frontline"],
+  "identity v": ["신원", "Identity V"],
+  "minecraft": ["마인크래프트", "Minecraft"],
+  "fortnite": ["포트나이트", "Fortnite"],
+  "call of duty": ["콜옵", "콜 오브 듀티", "COD Mobile"],
+  "league of legends": ["롤", "리그 오브 레전드", "League of Legends"],
+  "wild rift": ["와일드 리프트", "LoL Wild Rift"],
+  "fifa": ["피파", "FC 모바일"],
+  "efootball": ["e풋볼", "efootball"],
+  "one state": ["원스테이트", "OneState"],
+  "onestate": ["원스테이트", "OneState", "원스테이트 모바일"],
+  "racing master": ["레이싱 마스터", "Racing Master"],
+
+  /* —— 通用品类单词（配合词组匹配使用，如 open world shooter） —— */
+  "shooter": ["슈팅 게임", "총게임"],
+  "mobile": ["모바일", "모바일 게임"],
+  "mmo": ["MMORPG", "대작 MMORPG"],
+  "battle": ["배틀", "전투"],
+  "royale": ["로얄", "배틀 로얄"],
+  "idle": ["방치형", "방치형 게임"],
+  "afk": ["방치형 게임", "자동 사냥"],
+  "tycoon": ["타이쿤 게임", "경영 게임"],
+  "zombie": ["좀비 게임", "좀비"],
+  "heist": ["하이스트 게임", "강도 게임"],
+  "police": ["경찰 게임", "경찰"],
+  "gang": ["갱단 게임", "갱스터"],
+  "city": ["도시 게임", "도시 배경 게임"],
+  "war": ["전쟁 게임", "전쟁 전략"],
+  "tower": ["타워 디펜스", "디펜스"],
+  "defense": ["디펜스 게임", "방어 게임"],
+  /* 复合词必须写在前面对照表里单独占位，否则会被逐词拼接成「타워 디펜스 디펜스 게임」这种叠词 */
+  "tower defense": ["타워 디펜스", "타워디펜스 게임"],
+  "racing game": ["레이싱 게임", "레이싱"],
+  "puzzle game": ["퍼즐 게임", "퍼즐"],
+  "idle rpg": ["방치형 RPG", "방치형 게임"],
+  "survival game": ["서바이벌 게임", "생존 게임"],
+  "card game": ["카드 게임", "카드 RPG"],
+  "strategy game": ["전략 게임", "전략 시뮬레이션"],
+  "shooting game": ["슈팅 게임", "총게임"],
+  "action game": ["액션 게임", "모바일 액션"],
+  "adventure game": ["어드벤처 게임", "모험 게임"],
+  "simulation game": ["시뮬레이션 게임", "시뮬 게임"],
+  "merge game": ["머지 게임", "합성 게임"],
+  "runner game": ["러너 게임", "달리기 게임"],
+  "escape game": ["방탈출 게임", "탈출 게임"],
+  "crafting": ["크래프팅 게임", "제작 게임"],
+  "sandbox": ["샌드박스 게임", "샌드박스"],
+  "card": ["카드 게임", "카드 RPG"],
+  "deck": ["덱 빌딩", "덱 공략"],
+  "rhythm": ["리듬 게임", "음악 게임"],
+  "escape": ["방탈출 게임", "탈출 게임"],
+  "match": ["매치 퍼즐", "매치3"],
+  "soulslike": ["소울라이크", "소울라이크 게임"],
+  "roguelike": ["로그라이크", "로그라이크 게임"],
+  "extraction": ["익스트랙션 슈터", "탈출 슈팅"],
+  "esports": ["e스포츠", "e스포츠 게임"],
+  "pvp": ["PvP", "대전 게임"],
+  "moba": ["MOBA", "AOS"],
+  "aos": ["AOS", "MOBA 게임"],
+  "anime game": ["서브컬처 게임", "미소녀 게임"],
+  "waifu": ["미소녀 게임", "서브컬처 게임"],
+  "isekai": ["이세계 게임", "이세계물 게임"],
+  "cozy": ["힐링 게임", "감성 게임"],
+  "auto chess": ["오토 체스", "오토배틀러"],
+  "fighting": ["격투 게임", "대전 격투"],
+  "golf": ["골프 게임", "골프"],
+  "fishing": ["낚시 게임", "낚시"]
+};
+const ZH_TO_TOPIC_SUFFIX = {
+  "综合手游": ["모바일 게임 추천","모바일 신작","종합 게임 추천"],
+  "新手游": ["신작 모바일 게임","신작 게임","new mobile games"],
+  "测评": ["리뷰","평가","게임 리뷰"],
+  "攻略": ["공략","가이드","팁"],
+  "推荐": ["추천","인기 게임","best of"]
+};
+
+const GENRES = {
+  rpg: ["rpg","알피지","리니지","오딘","검은사막","아키에이지","세븐나이츠","라그나로크","미르","레이븐","v4","달빛조각사","니케","원신","명일방주","명조","붕괴","스타레일","나혼자만 레벨업","나혼렙","로드나인","아레스","젠레스","소드","검","마법","판타지","던전","디아블로","몬스터","레벨","육성","키우기","수집","gacha","가챠","스토리","퀘스트","사냥","파티","길드","캐릭터","장비","강화","공략"],
+  action: ["액션","action","타격","전투","콤보","난투","격투","대전","쳐","패치","손맛"],
+  shooting: ["슈팅","shooting","fps","배틀그라운드","배그","서든","카운터","콜옵","call of duty","tps","총","사격","건","총질","에임","aim","퍼스트 디센던트"],
+  openworld: ["오픈월드","open world","자유도","샌드박스","gta","grand theft","산안드레아스","vice city","마피아","갱스터","gangstar","범죄","도시","길거리","거리","어쌔신","assassin","스카이림","엘더스크롤","위쳐","호라이즌","젤다","원신","명조","붕괴","스타레일","아난타","무한대","오딘","에버소울","야생의 땅","대지","세계","월드","맵","지도","탐험","모험","이계","차원"],
+  sports: ["축구","soccer","fifa","e풋볼","풋볼","농구","basketball","야구","baseball","골프","golf","스포츠","sports","테니스","볼링","당구","피파"],
+  racing: ["레이싱","racing","카트","kart","드리프트","drift","니드포","need for speed","포르자","forza","아스팔트","asphalt","자동차","차량","운전","바이크","오토바이"],
+  survival: ["서바이벌","생존","배틀로얄","battle royale","로얄","포트나이트","fortnite","마인크래프트","minecraft","좀비","zombie","아포칼립스","레프트","데드"],
+  strategy: ["전략","strategy","전술","마스터","히어로즈","영웅","보드게임","카드","덱","체스","문명","시드","스타크래프트","롤","lol","리그오브레전드","도타","dota","오토체스","tft","전장","지휘","타워"],
+  simulation: ["시뮬레이션","simulation","시뮬","운영","경영","키우기","농장","하비","육성","테마파크","도시건설","요리","쿠킹","인생","life"],
+  anime: ["원신","니케","명일방주","프린세스 커넥트","페이트","에버소울","소울워커","데스티니 차일드","애니","아이돌","미소녀","수영복","코스프레","귀여운","모에","일러스트","웹툰","카툰","만화","여캐","각성","픽셀히어로","우마무스메","우마","블루아카","벽람","명조","붕괴","스타레일","젠레스","호요","미호요"],
+  casual: ["캐주얼","casual","퍼즐","puzzle","두뇌","방치","클릭","탈출","숨은그림","블록","매치","3매치","테트리스","뿌요","미니게임","간단","가벼운"],
+  news: ["소식","뉴스","공지","업데이트","패치노트","이벤트","출시","신작","발매","런칭","리뷰","평가","추천","랭킹","순위","top","톱","베스트","특집","정보","공략","팁"]
+};
+/* Gangstar 题材重合加权词典：[词, 权重]
+ * 权重 1.0 = 硬核犯罪/黑帮/GTA 题材；0.4 = 枪战/射击玩法（次相关）。
+ * 刻意剔除：오픈월드/자유도/샌드박스/도시（宽泛开放世界题材词）、
+ * 원신/오딘/명조/붕괴/스타레일/나혼렙/아난타/무한대（二次元开放世界RPG，题材与 Gangstar 不同）。
+ * 每视频标题取命中词的最高权重，频道整体取平均分，避免同一标题重复计数。
+ */
+const GANGSTAR_TERMS = [
+  ["gta",1],["grand theft",1],["지티에이",1],["산안드레아스",1],["vice city",1],
+  ["갱스터",1],["gangster",1],["마피아",1],["mafia",1],
+  ["범죄",1],["crime",1],["범죄도시",1],
+  ["조폭",1],["깡패",1],["갱단",1],
+  ["강도",1],["robbery",1],["하이스트",1],["heist",1],["경찰",1],
+  ["총질",0.4],["슈팅",0.4],["shooting",0.4],["fps",0.4],["tps",0.4],
+  ["슈터",0.4],["shooter",0.4],["사격",0.4],["총격",0.4],
+  ["배틀그라운드",0.4],["배그",0.4],["pubg",0.4],["battlegrounds",0.4]
+];
+const GAME_TITLES = ["원신","명조","붕괴","스타레일","젠레스","오딘","니케","명일방주","엔드필드","킹덤2","킹덤","아스달","로드나인","솔인챈트","마비노기","카발","블루프로토콜","리니지","라그나로크","검은사막","아키에이지","세븐나이츠","미르","나혼자만 레벨업","나혼렙","배틀그라운드","배그","브롤스타즈","쿠키런","카트라이더","클래시","디아블로","던전앤파이터","GTA","산안드레아스","마피아","갱스터","에버소울","프린세스 커넥트","우마무스메","블루아카","퍼스트 디센던트","포트나이트","마인크래프트","연운","이환","아난타","무한대","로드나인"];
+const GENRE_LABEL = { rpg:"RPG", action:"动作", shooting:"射击", openworld:"开放世界", sports:"体育", racing:"竞速", survival:"生存", strategy:"策略", simulation:"模拟", anime:"二次元", casual:"休闲", news:"资讯攻略" };
+const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+const HANGUL_RE = /[\uac00-\ud7af]/;
+
+/* ============ 非游戏实体黑名单 ============
+ * 命中任一模式即判定为非游戏频道，在搜索召回和最终筛选两处双重排除。
+ * 覆盖：教育机构、政府/公共、新闻媒体(频道主体)、医疗、宗教、广播等。
+ * 注意：只检测频道标题+description，不影响视频标题分类。 */
+const NON_GAME_PATTERNS = [
+  /* 教育机构 */
+  "대학교","university","학교","대학원","education","college","고등학교","중학교","초등학교",
+  "유치원","유아원","academy","학원","교육청","교육부",
+  /* 政府/公共 */
+  "정부","government","공공기관","관공서","시청","구청","군청","도청","청와대","대통령",
+  "국회","의회","경찰청","소방청","국방부",
+  /* 新闻媒体（作为频道主体，不是"游戏资讯"类个人创作者） */
+  "KBS|MBC|SBS|YTN|연합뉴스|뉴시스|JTBC|채널A|TV조선|MBN|한국경제TV|매일경제TV|머니투데이|이데일리|헤럴드경제|서울경제|노컷브레이크|오마이뉴스|프레시안",
+  /* 广播电台 */
+  "라디오","radio station",
+  /* 医疗 */
+  "병원","hospital","의료원","보건소",
+  /* 宗教 */
+  "교회","성당","절","사찰","church","cathedral",
+  /* 其他明显非游戏 */
+  "자동차판매","부동산중개","법무법인","회계법인",
+  /* 游戏公司官方号 / 官方频道（非个人 KOC） */
+  "엔씨소프트","넥슨","넷마블","크래프톤","펄어비스","스마일게이트","컴투스","위메이드","카카오게임즈","라인게임즈","공식 채널","official channel","공식채널",
+  /* 游戏媒体 / 资讯门户（作为频道主体） */
+  "게임메카","인벤","루리웹","게임조선","게임동아","디스이즈게임",
+  /* 游戏账号交易 / 代练 / 充值 */
+  "계정거래","계정 판매","게임머니","게임아이템","대리육성","작업장","핵 판매","리세계정",
+].join("|");
+const NON_GAME_RE = new RegExp(NON_GAME_PATTERNS, "i");
+
+/* 判定频道是否为非游戏实体（硬排除）。
+ * 检查频道标题和 description，命中黑名单即返回 true + 匹配到的关键词。 */
+function isNonGameChannel(title, desc) {
+  const text = [title, desc].filter(Boolean).join(" ");
+  const m = text.match(NON_GAME_RE);
+  if (!m) return { blocked: false };
+  return { blocked: true, reason: m[0] };
+}
+
+/* ============ 预设词包 ============ */
+const CACHE_KEY = "yt_koc_tool_search_cache_v2";
+const USER_PACKS_KEY = "yt_koc_tool_user_packs_v1";
+const HISTORY_KEY = "yt_koc_tool_history_v1";
+const CACHE_TTL_DAYS = 30;
+
+function loadSearchCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return {};
+    const obj = JSON.parse(raw);
+    const now = Date.now();
+    for (const k of Object.keys(obj)) {
+      if (obj[k].cachedAt && (now - obj[k].cachedAt) > CACHE_TTL_DAYS * 86400 * 1000) delete obj[k];
+    }
+    return obj;
+  } catch (e) { return {}; }
+}
+function saveSearchCache(c) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch (e) {}
+}
+/* 缓存键带地区前缀：同一个词在美区和英区召回的结果不同，不能共用一份缓存 */
+function cacheKey(q, rc) { return rc ? rc + "|" + q : q; }
+function getCachedQuery(q, rc) {
+  const c = loadSearchCache();
+  return c[cacheKey(q, rc)] || null;
+}
+function setCachedQuery(q, items, rc) {
+  const c = loadSearchCache();
+  c[cacheKey(q, rc)] = { items, cachedAt: Date.now() };
+  saveSearchCache(c);
+}
+function updateCacheCount() {
+  const c = loadSearchCache();
+  const el = $("cacheCount"); if (el) el.textContent = Object.keys(c).length;
+}
+
+function loadUserPacks() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(USER_PACKS_KEY) || "{}");
+    return migrateUserPacks(raw);
+  } catch (e) { return {}; }
+}
+function saveUserPacks(p) {
+  try { localStorage.setItem(USER_PACKS_KEY, JSON.stringify(p)); } catch (e) {}
+}
+/* 用户词包统一用对象结构：{conceptZh: "中文概念词，逗号分隔", legacy: [...]}；老数组格式自动迁移 */
+function migrateUserPacks(packs) {
+  for (const k in packs) {
+    if (Array.isArray(packs[k])) {
+      packs[k] = { conceptZh: k, legacy: packs[k] };
+    }
+  }
+  return packs;
+}
+function packTerms(pack) {
+  if (!pack) return [];
+  if (pack.legacy && pack.legacy.length) return pack.legacy;
+  return [];
+}
+
+/* 把中文概念词按 region 翻译成可用的搜索词列表（命中内置词典直接出，未命中走兜底） */
+/* 英语区国家：这些地区生成的搜索词都用英语，但它们在 YouTube 上的创作者池完全不同，
+   所以需要按 regionCode 分别搜索——这正是「只靠语言分不出地区」的原因。 */
+const EN_REGIONS = ["US","GB","CA","AU","IE","NZ","IN","PH","SG","MY","ZA"];
+function isEnRegion(r) { return EN_REGIONS.indexOf(r) >= 0; }
+function pickLang(dict, region) {
+  if (region === "all") return [...(dict.ko||[]), ...(dict.en||[])];
+  const map = { KR:"ko", JP:"ja", CN:"cn", TW:"cn" };
+  return dict[map[region] || (isEnRegion(region) ? "en" : "ko")] || [];
+}
+function pickSuffix(region) {
+  if (isEnRegion(region)) return MOBILE_SUFFIX_EN;
+  if (region === "JP") return MOBILE_SUFFIX_JA;
+  if (region === "CN" || region === "TW") return MOBILE_SUFFIX_CN;
+  if (region === "all") return [...MOBILE_SUFFIX_KO, ...MOBILE_SUFFIX_EN];
+  return MOBILE_SUFFIX_KO;
+}
+/* 中文概念命中链：整词精确 → 中文子串（长词优先，如「二次元卡牌」命中「二次元」） */
+const ZH_GENRE_KEYS = Object.keys(ZH_TO_GENRE).sort((a, b) => b.length - a.length);
+/* 英文 → 词典条目 反向索引。
+   没有它的话，英文概念只能走 EN_TO_KO（只有韩语），日文区就会拿到韩语搜索词，
+   在 YouTube 日本区同样搜不到东西。建了这个索引，日文区就能取到 ja 词条。 */
+const EN_IDX = (function () {
+  const m = {};
+  for (const k in ZH_TO_GENRE) {
+    const d = ZH_TO_GENRE[k];
+    for (const e of (d.en || [])) m[String(e).toLowerCase().trim()] = d;
+  }
+  return m;
+})();
+function lookupZh(c) {
+  if (ZH_TO_TITLES[c]) return { dict: ZH_TO_TITLES[c], via: c };
+  if (ZH_TO_GENRE[c]) return { dict: ZH_TO_GENRE[c], via: c };
+  for (const k of ZH_GENRE_KEYS) {
+    if (k.length >= 2 && c.indexOf(k) !== -1) return { dict: ZH_TO_GENRE[k], via: k };
+  }
+  return null;
+}
+/* 英文概念命中链：整词精确 → 逐词拆分翻译（如 mobile open world rpg） */
+function lookupEn(c) {
+  const cl = c.toLowerCase().trim();
+  if (EN_TO_KO[cl]) return { terms: EN_TO_KO[cl], via: cl, dict: EN_IDX[cl] || null };
+  /* N-gram 词组匹配前，先试试整词能不能对上词典条目（命中后日文区可用 ja 词条） */
+  const wholeDict = EN_IDX[cl] || null;
+  const toks = cl.split(/[\s\-_/+,]+/).filter(Boolean);
+  if (toks.length < 2) {
+    return wholeDict
+      ? { terms: wholeDict.ko && wholeDict.ko.length ? wholeDict.ko : [c], via: cl, dict: wholeDict }
+      : null;
+  }
+  /* 优先做词组匹配（长词组优先）：open world rpg → 「open world」+「rpg」 */
+  const parts = [];
+  let hit = 0;
+  let i = 0;
+  let dict = wholeDict;
+  while (i < toks.length) {
+    let matched = 0;
+    for (let len = Math.min(3, toks.length - i); len >= 1; len--) {
+      const phrase = toks.slice(i, i + len).join(" ");
+      if (EN_TO_KO[phrase]) {
+        parts.push(EN_TO_KO[phrase][0]);
+        if (!dict && EN_IDX[phrase]) dict = EN_IDX[phrase];
+        matched = len;
+        hit++;
+        break;
+      }
+    }
+    i += matched || 1;
+  }
+  if (hit) return { terms: [parts.join(" ")], via: cl, dict: dict };
+  return null;
+}
+function translateZhToQueries(zhText, region) {
+  /* 只按逗号/顿号/分号切分，不按空格切——否则 "open world shooter" 这类英文短语会被拆散 */
+  const concepts = String(zhText||"").split(/[,,、;；]+/).map(s=>s.trim()).filter(Boolean);
+  if (!concepts.length) return { queries: [], hits: [], misses: [] };
+  const out = new Set();
+  const hits = [];   // 词典命中的概念
+  const misses = []; // 未命中的概念（会原样保留，但不再拼韩语后缀，避免产生无意义搜索词）
+  const suff = pickSuffix(region);
+  for (const c of concepts) {
+    const zh = lookupZh(c);
+    if (zh) {
+      hits.push(zh.via === c ? c : c + "(→" + zh.via + ")");
+      const langs = pickLang(zh.dict, region);
+      for (const t of langs) {
+        out.add(t);
+        for (const s of suff.slice(0, 3)) out.add(t + " " + s);
+      }
+      continue;
+    }
+    /* 中文词典未命中 → 尝试英文→韩文翻译 */
+    const en = lookupEn(c);
+    if (en) {
+      const koTerms = en.terms;
+      hits.push(c + "(→" + koTerms[0] + ")");
+      /* 日文区：先取词典里的日语词条。EN_TO_KO 只有韩语，若日文区直接沿用，
+         英文概念会变成韩语搜索词，在 YouTube 日本区同样搜不到内容。 */
+      if (region === "JP" && en.dict && (en.dict.ja || []).length) {
+        for (const t of en.dict.ja) {
+          out.add(t);
+          for (const s of suff.slice(0, 3)) out.add(t + " " + s);
+        }
+        continue;
+      }
+      /* 韩文翻译结果直接作为搜索词（KR 区域用韩文，US/CN 用原文+韩文） */
+      if (region === "KR" || region === "all" || region === "JP") {
+        for (const t of koTerms) {
+          out.add(t);
+          for (const s of suff.slice(0, 3)) out.add(t + " " + s);
+        }
+      }
+      if (isEnRegion(region) || region === "CN" || region === "TW" || region === "all") {
+        out.add(c);
+        for (const s of suff.slice(0, 2)) out.add(c + " " + s);
+        /* 同时也加入韩文版，覆盖双语频道（纯英语区不需要补韩文，会污染召回） */
+        if (region === "CN" || region === "TW" || region === "all") {
+          for (const t of koTerms.slice(0, 2)) {
+            out.add(t);
+            for (const s of suff.slice(0, 2)) out.add(t + " " + s);
+          }
+        }
+      }
+      continue;
+    }
+    /* 中英文都没命中：原样保留，不拼后缀 */
+    misses.push(c);
+    out.add(c);
+  }
+  return { queries: [...out], hits, misses };
+}
+
+/* ============ 核心词（游戏名 + 题材）→ 搜索词生成 ============ */
+
+function debounce(fn, ms) { let t; return function () { clearTimeout(t); t = setTimeout(fn, ms); }; }
+
+/* 题材两级树渲染到 #coreGenreChips：主品类可展开，副品类点选（复用 PACK_TREE 的两级结构与样式） */
+function renderGenreTree() {
+  const gc = $("coreGenreChips");
+  if (!gc) return;
+  gc.innerHTML = Object.keys(PACK_TREE).map(main => {
+    const subs = PACK_TREE[main].subs;
+    const chips = Object.keys(subs).map(sub =>
+      '<span class="chip sub" data-sub="' + esc(sub) + '" title="' + esc(subs[sub].slice(0, 4).join(" / ")) + '">' + esc(sub) + "</span>"
+    ).join("");
+    return '<div class="pack-main" data-main="' + esc(main) + '">' +
+             '<div class="pack-main-head">' +
+               '<span class="pack-caret">▶</span>' +
+               '<span class="pack-main-title">' + esc(main) + "</span>" +
+               '<span class="pack-main-count">' + Object.keys(subs).length + "</span>" +
+             "</div>" +
+             '<div class="pack-subs"><div class="chips">' + chips + "</div></div>" +
+           "</div>";
+  }).join("");
+  gc.querySelectorAll(".pack-main-head").forEach(h => {
+    h.addEventListener("click", () => h.parentElement.classList.toggle("open"));
+  });
+  gc.querySelectorAll(".chip.sub").forEach(c => {
+    c.addEventListener("click", (e) => { e.stopPropagation(); c.classList.toggle("on"); rebuildQueries(); });
+  });
+  const first = gc.querySelector(".pack-main");
+  if (first) first.classList.add("open");
+}
+
+/* 当前选中的副品类名列表 */
+function selectedGenreSubs() {
+  return [...document.querySelectorAll("#coreGenreChips .chip.sub.on")].map(c => c.dataset.sub);
+}
+
+/* 单个游戏名的翻译：优先走中→韩、英→韩词典，未命中的英文/韩文原名补韩语后缀，原词始终保留 */
+function translateGameName(g, region) {
+  const out = new Set();
+  const r = translateZhToQueries(g, region);
+  for (const q of r.queries) out.add(q);
+  out.add(g);
+  /* 词典未收录的英文游戏名（如 GTA、Brawl Stars），补韩语后缀，保证在韩区也能搜到相关内容 */
+  if (/[a-zA-Z]/.test(g) && !/[\uac00-\ud7af]/.test(g)) {
+    out.add(g + " 게임");
+    out.add(g + " 모바일");
+  }
+  /* 已经是韩文的游戏名，补游戏/攻略后缀，扩大召回面 */
+  if (/[\uac00-\ud7af]/.test(g)) {
+    out.add(g + " 게임");
+    out.add(g + " 공략");
+  }
+  return [...out];
+}
+
+/* 从「游戏名 + 题材」组合生成韩语搜索词，写入 #queries 预览框 */
+function rebuildQueries() {
+  const box = $("queries");
+  if (!box) return;
+  const region = ($("region") && $("region").value) || "KR";
+  const games = (($("gameNames") && $("gameNames").value) || "").split("\n").map(s => s.trim()).filter(Boolean);
+  const subTerms = [];
+  for (const sub of selectedGenreSubs()) {
+    if (PRESET_PACKS[sub]) subTerms.push(...PRESET_PACKS[sub]);
+  }
+  const out = new Set();
+  for (const g of games) {
+    for (const q of translateGameName(g, region)) out.add(q);
+  }
+  for (const t of subTerms) out.add(t);
+  if (!games.length && !subTerms.length) { box.value = ""; return; }
+  box.value = Array.from(out).join("\n");
+}
+
+/* ============ 预设词包（主品类 → 副品类 两级结构） ============
+ * 结构说明：
+ *   PACK_TREE[主品类] = { desc: "说明", subs: { 副品类: [韩语搜索词...] } }
+ * 韩语词条的取词原则（不是中文直译，而是韩国玩家/手游 YouTuber 实际会搜的说法）：
+ *   · 品类词用韩国玩家口语（如 MOBA 韩国叫 AOS；二次元游戏韩国叫 서브컬처；挂机叫 방치형）
+ *   · 高频搭配后缀：추천(推荐) / 공략(攻略) / 리뷰(评测) / 순위(排行) / 티어표(强度榜) / 무과금(零氪)
+ *   · 尽量给出"品类 + 搭配"的完整搜索短语，比裸品类词命中率高
+ */
+const PACK_TREE = {
+  /* ── 截图给出的 12 个主品类，二级名称完全一致 ── */
+  "1. RPG（角色扮演）": {
+    desc: "回合制 / 即时 / ARPG / MMORPG / 放置 / 卡牌 / 开放世界 / roguelike",
+    subs: {
+      "回合制RPG": ["턴제 RPG 추천","턴제 모바일 게임","SRPG 추천","전략 RPG 추천","턴제 게임 순위","JRPG 모바일 추천"],
+      "即时RPG": ["액션 RPG 추천","ARPG 모바일","액션RPG 신작","타격감 좋은 게임 추천","핵앤슬래시 게임 추천","손맛 좋은 모바일게임"],
+      "ARPG动作角色扮演": ["액션 RPG 추천","ARPG 모바일","액션RPG 신작","핵앤슬래시 게임 추천","타격감 좋은 모바일게임"],
+      "MMORPG大型多人在线RPG": ["모바일 MMORPG 추천","대작 MMORPG","신작 MMORPG","MMORPG 순위","MMORPG 공략","무과금 MMORPG","국가전 게임 추천","길드전 게임 추천","MMORPG 티어표"],
+      "放置RPG": ["방치형 RPG 추천","방치형 모바일게임","자동 사냥 RPG","오토 사냥 RPG 추천","방치형 티어표"],
+      "卡牌RPG": ["카드 RPG 추천","수집형 RPG 추천","카드 수집 게임 추천","덱 빌딩 RPG 추천","수집형 모바일게임"],
+      "开放世界RPG": ["오픈월드 RPG 추천","오픈월드 RPG 모바일","자유도 높은 RPG 추천","오픈월드 모바일게임","오픈월드 공략","탐험 RPG 추천"],
+      "roguelike-RPG": ["로그라이크 RPG 추천","로그라이크 모바일","로그라이크 공략","로그라이크 덱빌딩","로그라이크 신작"]
+    }
+  },
+  "2. 策略": {
+    desc: "SLG / RTS / 战棋SRPG / 塔防 / 4X",
+    subs: {
+      "SLG（策略生存/战争策略）": ["SLG 게임 추천","전략 게임 추천","전쟁 전략 게임","4X 전략 게임","국가 경영 게임 추천","병법 게임 추천","점령전 게임 추천","길드전 전략 게임"],
+      "RTS即时战略": ["RTS 게임 추천","실시간 전략 게임","RTS 모바일","실시간 전략 모바일"],
+      "战棋/战棋SRPG": ["전략 RPG 추천","SRPG 추천","전술 RPG 모바일","턴제 전략 게임 추천"],
+      "塔防": ["타워 디펜스 추천","디펜스 게임 추천","타워디펜스 모바일","방어 게임 추천","타워 디펜스 공략"],
+      "4X策略": ["4X 전략 게임 추천","점령전 게임 추천","국가 경영 게임","영토 확장 게임 추천"]
+    }
+  },
+  "3. 卡牌": {
+    desc: "收集卡牌 / TCG集换式 / CCG构筑 / 卡牌放置",
+    subs: {
+      "收集卡牌": ["수집형 카드 게임 추천","카드 수집 게임 추천","캐릭터 수집 카드 게임","수집형 모바일게임"],
+      "TCG集换式卡牌": ["TCG 게임 추천","트레이딩 카드 게임","TCG 모바일","카드 교환 게임 추천"],
+      "CCG构筑卡牌": ["CCG 게임 추천","덱 빌딩 게임 추천","덱 구성 카드 게임","CCG 모바일"],
+      "卡牌放置": ["카드 방치형 게임 추천","카드 오토 배틀 게임","자동 카드 게임 추천"]
+    }
+  },
+  "4. 射击": {
+    desc: "FPS / TPS / 射击生存 / 休闲射击",
+    subs: {
+      "FPS第一人称射击": ["FPS 게임 추천","모바일 FPS 추천","1인칭 슈팅 게임","슈팅 게임 추천","FPS 모바일 게임","총게임 추천","에임 연습 게임"],
+      "TPS第三人称射击": ["TPS 게임 추천","3인칭 슈팅 게임","TPS 모바일","TPS 공략"],
+      "射击生存": ["생존 슈팅 게임 추천","서바이벌 슈터 게임","좀비 슈팅 게임 추천","사냥 슈팅 게임"],
+      "休闲射击": ["캐주얼 슈팅 게임 추천","가벼운 총게임","간단한 슈팅 모바일","심심풀이 슈팅 게임"]
+    }
+  },
+  "5. 竞技": {
+    desc: "MOBA / 大逃杀/吃鸡",
+    subs: {
+      "MOBA多人在线竞技": ["MOBA 게임 추천","AOS 게임 추천","5대5 게임 추천","MOBA 모바일","와일드 리프트","리그 오브 레전드 모바일"],
+      "大逃杀/吃鸡": ["배틀 로얄 게임 추천","배틀그라운드 모바일","배그 모바일 실황","배그 공략","생존 슈팅 게임 추천","배틀 로얄 모바일"]
+    }
+  },
+  "6. 模拟": {
+    desc: "经营 / 生活 / 建造 / 城市 / 农场",
+    subs: {
+      "模拟经营": ["경영 시뮬레이션 추천","경영 게임 추천","타이쿤 게임 추천","가게 경영 게임","요리 게임 추천","사업 게임 추천"],
+      "生活模拟": ["라이프 시뮬레이션 추천","생활 시뮬 게임","일상 시뮬레이션","라이프 게임 추천"],
+      "建造模拟": ["건설 시뮬레이션 게임 추천","건축 게임 추천","크래프팅 게임 추천","건설 모바일게임"],
+      "城市建造": ["도시 건설 게임 추천","도시 만들기 게임","시티 빌더 게임 추천","도시 경영 게임"],
+      "农场模拟": ["농장 게임 추천","농사 게임 추천","팜 시뮬레이션 게임","농장 경영 게임 추천"]
+    }
+  },
+  "7. 休闲": {
+    desc: "三消 / 消除 / 解谜 / 跑酷 / 合成 / IO / 超休闲 / 音乐节奏",
+    subs: {
+      "三消": ["매치3 게임 추천","3매치 게임 추천","매치 퍼즐 추천","블록 매치 게임"],
+      "消除": ["매치 퍼즐 추천","블록 퍼즐 게임","제거 게임 추천","폭발 게임 추천"],
+      "解谜": ["퍼즐 게임 추천","방탈출 게임 추천","미스터리 게임 추천","퍼즐 어드벤처 게임"],
+      "跑酷": ["러너 게임 추천","달리기 게임 추천","런 게임 모바일","점프 액션 게임 추천"],
+      "合成": ["머지 게임 추천","합성 게임 추천","병합 게임 모바일","머지 퍼즐 게임"],
+      "IO休闲": ["IO 게임 추천","io 게임 모바일","멀티 io 게임","생존 io 게임 추천"],
+      "超休闲": ["하이퍼 캐주얼 게임 추천","초간단 게임","1분 게임 추천","심플한 모바일 게임"],
+      "音乐节奏": ["리듬 게임 추천","음악 게임 추천","리듬 액션 게임","음악 맞추기 게임"]
+    }
+  },
+  "8. 动作": {
+    desc: "横版动作 / 格斗 / 魂类 / 清版闯关",
+    subs: {
+      "横版动作": ["횡스크롤 액션 게임 추천","횡스크롤 모바일","2D 액션 게임 추천","횡스크롤 어드벤처"],
+      "格斗": ["격투 게임 추천","대전 격투 게임","싸움 게임 추천","격투 모바일 게임","대전 액션 게임 추천"],
+      "魂类": ["소울라이크 게임 추천","다크 판타지 액션 게임","소울라이크 모바일","어려운 액션 게임 추천"],
+      "清版闯关": ["진행형 액션 게임 추천","beat'em up 게임","스크롤 액션 모바일","다수 적 처치 게임 추천"]
+    }
+  },
+  "9. 开放世界": {
+    desc: "沙盒 / GTA-like都市开放世界 / 生存开放世界",
+    subs: {
+      "沙盒": ["샌드박스 게임 추천","마인크래프트 모바일","샌드박스 건설 게임","자유 건축 게임 추천","자유로운 세계 게임"],
+      "GTA-like都市开放世界": ["오픈월드 범죄 게임 추천","갱스터 오픈월드 게임","도시 범죄 모바일","GTA 스타일 게임 추천","자유도 높은 도시 게임"],
+      "生存开放世界": ["오픈월드 서바이벌 게임 추천","생존 오픈월드 모바일","크래프팅 서바이벌 게임","야생 생존 게임 추천"]
+    }
+  },
+  "10. 解谜": {
+    desc: "叙事解谜 / 密室解谜 / 点击解谜",
+    subs: {
+      "叙事解谜": ["스토리 퍼즐 게임 추천","내러티브 미스터리 게임","퍼즐 어드벤처 추천","스토리 기반 퍼즐"],
+      "密室解谜": ["방탈출 게임 추천","탈출 퍼즐 게임","미스터리 방탈출","실내 탈출 게임 추천"],
+      "点击解谜": ["클릭 퍼즐 게임 추천","포인트 앤 클릭 어드벤처","히든 오브젝트 게임 추천","클릭 어드벤처 모바일"]
+    }
+  },
+  "11. 竞速": {
+    desc: "赛车竞速 / 摩托竞速",
+    subs: {
+      "赛车竞速": ["레이싱 게임 추천","카 레이싱 게임","드라이빙 게임 추천","모바일 레이싱 게임","레이싱 게임 공략"],
+      "摩托竞速": ["오토바이 레이싱 게임 추천","바이크 게임 추천","모터사이클 레이싱 모바일"]
+    }
+  },
+  "12. 冒险": {
+    desc: "叙事冒险 / 像素冒险 / 视觉小说AVG",
+    subs: {
+      "叙事冒险": ["어드벤처 게임 추천","스토리 어드벤처 모바일","모험 게임 추천","탐험 게임 추천","싱글플레이 어드벤처"],
+      "像素冒险": ["픽셀 어드벤처 게임 추천","도트 그래픽 모험 게임","레트로 어드벤처 모바일","8bit 어드벤처 게임"],
+      "视觉小说AVG": ["비주얼 노벨 게임 추천","AVG 게임 모바일","스토리 중심 게임 추천","텍스트 어드벤처 게임"]
+    }
+  }
+};
+
+
+/* 打平成 副品类名 -> 搜索词数组，保证旧逻辑（syncQueries / autoSet）继续可用 */
+const PRESET_PACKS = {};
+const PACK_MAIN_OF = {};  /* 副品类 -> 主品类，回显用 */
+for (const main in PACK_TREE) {
+  for (const sub in PACK_TREE[main].subs) {
+    PRESET_PACKS[sub] = PACK_TREE[main].subs[sub];
+    PACK_MAIN_OF[sub] = main;
+  }
+}
+
+/* ============ 状态 ============ */
+let state = {
+  apiKey: "",
+  candidates: {},   // cid -> {title, desc}
+  profiles: {},     // cid -> {title, desc, country, created, subs, videos, views, uploads}
+  deep: {},         // cid -> {title, subs, country, created, desc, titles, dates, total_videos}
+  analysis: {},     // cid -> 分析结果
+  avgviews: {},     // cid -> {avg_views, median_views, n}
+  regions: {},      // cid -> 地区判定结果 {region, confidence, note, evidence}
+  regionRecall: {}, // cid -> {US:n, CA:n, GB:n}  第三层信号：跨区召回计数
+  rows: [],         // 最终结果行
+  platformExcludedCount: 0,  // 平台前置排除的频道数
+  quotaUsed: 0,
+  running: false,
+  sortCol: null,
+  sortDir: 1,
+  selectAll: false
+};
+
+const $ = (id) => document.getElementById(id);
+
+/* ============ 工具函数 ============ */
+function log(msg, cls) {
+  const el = $("log");
+  const line = document.createElement("div");
+  line.className = cls || "";
+  line.textContent = "[" + new Date().toLocaleTimeString() + "] " + msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+function setProgress(text, pct) {
+  $("progText").textContent = text;
+  $("progFill").style.width = (pct || 0) + "%";
+  $("quotaUsed").textContent = state.quotaUsed.toLocaleString();
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function esc(s) {
+  return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+/* ============ API 调用（含配额） ============ */
+const QUOTA_COST = { search: 100, channels: 1, playlistItems: 1, videos: 1 };
+async function api(resource, params) {
+  if (!state.apiKey) throw new Error("未设置 API key，请先在上方①处粘贴并保存。");
+  params.key = state.apiKey;
+  const url = "https://www.googleapis.com/youtube/v3/" + resource + "?" + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  state.quotaUsed += QUOTA_COST[resource] || 1;
+  if (!res.ok) {
+    let msg = "HTTP " + res.status;
+    try {
+      const j = await res.json();
+      const err = (j.error && j.error.errors && j.error.errors[0]) || {};
+      if (j.error && j.error.message) msg = j.error.message;
+      if (err.reason === "quotaExceeded") msg = "今日配额已用完（quotaExceeded），请明天再试或换一个 key。";
+      else if (err.reason === "keyInvalid") msg = "API key 无效，请检查是否复制完整。";
+      else if (err.reason === "forbidden" || err.reason === "dailyLimitExceeded") msg = "请求被拒绝或达到每日上限。";
+    } catch (e) {}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+/* ============ 分类 ============ */
+function classifyTitle(t) {
+  const tl = String(t).toLowerCase();
+  const tags = {};
+  for (const g in GENRES) tags[g] = GENRES[g].some(w => tl.includes(w.toLowerCase()));
+  const isMobile = MOBILE_WORDS.some(w => tl.includes(w.toLowerCase()));
+  let isPC = PC_WORDS.some(w => tl.includes(w.toLowerCase()));
+  let isConsole = CONSOLE_WORDS.some(w => tl.includes(w.toLowerCase()));
+  // 平台判断互相排斥：同时命中 PC 与主机词时，主机词更具体（ps5/xbox/닌텐도/플스），优先归主机
+  if (isPC && isConsole) isPC = false;
+  let gangstarScore = 0;
+  for (const [w, wt] of GANGSTAR_TERMS) {
+    if (tl.includes(w)) gangstarScore = Math.max(gangstarScore, wt);
+  }
+  return { tags, isMobile, isPC, isConsole, gangstarScore };
+}
+
+function analyzeChannel(cid, d) {
+  const titles = d.titles || [];
+  const dates = d.dates || [];
+  const n = Math.max(titles.length, 1);
+  const genreHits = {};
+  for (const g in GENRES) genreHits[g] = 0;
+  let mobileCnt = 0, pcCnt = 0, consoleCnt = 0, gangstarSum = 0, gangstarHardCnt = 0, animeCnt = 0;
+  const gameCnt = {};
+  for (const t of titles) {
+    const r = classifyTitle(t);
+    for (const g in r.tags) if (r.tags[g]) genreHits[g]++;
+    if (r.isMobile) mobileCnt++;
+    if (r.isPC) pcCnt++;
+    if (r.isConsole) consoleCnt++;
+    gangstarSum += r.gangstarScore;
+    if (r.gangstarScore >= 1) gangstarHardCnt++;
+    if (r.tags.anime) animeCnt++;
+    for (const gm of GAME_TITLES) {
+      if (String(t).toLowerCase().includes(gm.toLowerCase())) gameCnt[gm] = (gameCnt[gm]||0)+1;
+    }
+  }
+  let lastDate = "";
+  if (dates.length) lastDate = dates.reduce((a,b)=>a>b?a:b);
+  let emails = [];
+  const em = String(d.desc||"").match(EMAIL_RE) || [];
+  emails = em.filter(e => !e.includes("youtube.com") && !e.includes("example")).filter((v,i,a)=>a.indexOf(v)===i);
+  const sortedGenres = Object.entries(genreHits).sort((a,b)=>b[1]-a[1]);
+  const top3 = sortedGenres.filter(x=>x[1]>0).slice(0,3).map(x=>x[0]);
+  const topGames = Object.entries(gameCnt).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);
+  return {
+    title: d.title, subs: d.subs, country: d.country, created: (d.created||"").slice(0,10),
+    videos_analyzed: n, mobile_pct: Math.round(mobileCnt/n*100), pc_pct: Math.round(pcCnt/n*100), console_pct: Math.round(consoleCnt/n*100),
+    gangstar_pct: Math.round(gangstarSum/n*100), gangstar_hard_pct: Math.round(gangstarHardCnt/n*100),
+    anime_pct: Math.round(animeCnt/n*100), genreHits, top3_genres: top3, top_games: topGames,
+    last_video: lastDate.slice(0,10), emails, uploads: d.uploads
+  };
+}
+
+/* ==========================================================================
+   地区精准识别引擎 v10（2026-09-15 实测方案落地）
+   --------------------------------------------------------------------------
+   为什么不能只靠语言：美国、加拿大、英国、爱尔兰、澳洲、新西兰的 YouTuber
+   都讲英语，YouTube 的语言字段又几乎只返回裸的 en（实测 en-US / en-GB 覆盖
+   率极低），靠语言分不出地区。
+
+   为什么不用 IP：YouTube 公开 API 既不暴露创作者 IP 也不暴露观众 IP，观众
+   地理分布只在创作者后台可见，第三方平台给的百分比是模型估算值且多数付费。
+   所以「按 IP 抓」在挖掘端根本不存在这条路。
+
+   本引擎改用三层「可观测信号」加权判定，并输出置信度分档：
+     L1  频道 country 字段      创作者自填所在国，硬信号，实测覆盖率约 82%
+     L2  文本线索                拼写 / 货币 / 度量衡 / 电话区号 / 域名 / 地名
+     L3  跨区召回差异（可选）     同一批搜索词分别在 US/CA/GB 搜，看频道只在哪个区出现
+   判不出来的如实标 unknown，不硬归类，这样交付出去的数据才可信。
+
+   注意：L1+L2 判定的是「创作者在哪」，不等于「观众在哪」。观众地区请在投放
+   端用 Google Ads 的地理定向锁定（版位定向 + 地理定向叠加，非目标地区不计费）。
+   ========================================================================== */
+
+const COUNTRY_CN = {
+  US:"美国", CA:"加拿大", GB:"英国", IE:"爱尔兰", AU:"澳大利亚", NZ:"新西兰",
+  IN:"印度", PK:"巴基斯坦", BD:"孟加拉国", PH:"菲律宾", ID:"印尼", MY:"马来西亚",
+  SG:"新加坡", TH:"泰国", VN:"越南", KR:"韩国", JP:"日本", CN:"中国", TW:"中国台湾", HK:"中国香港",
+  BR:"巴西", MX:"墨西哥", AR:"阿根廷", CL:"智利", CO:"哥伦比亚",
+  DE:"德国", FR:"法国", ES:"西班牙", IT:"意大利", NL:"荷兰", BE:"比利时",
+  SE:"瑞典", NO:"挪威", DK:"丹麦", FI:"芬兰", PL:"波兰", PT:"葡萄牙", CH:"瑞士", AT:"奥地利",
+  TR:"土耳其", RU:"俄罗斯", UA:"乌克兰",
+  ZA:"南非", NG:"尼日利亚", KE:"肯尼亚", EG:"埃及", AE:"阿联酋", SA:"沙特"
+};
+
+/* 结果地区分组（筛选下拉用） */
+const REGION_GROUPS = {
+  "north_america": { label:"北美（美国 + 加拿大）", cc:["US","CA"] },
+  "uk_ie":         { label:"英国 + 爱尔兰", cc:["GB","IE"] },
+  "oceania":       { label:"澳新（澳大利亚 + 新西兰）", cc:["AU","NZ"] },
+  "english":       { label:"英语区（美加英爱澳新）", cc:["US","CA","GB","IE","AU","NZ"] },
+  "europe":        { label:"欧洲（英爱 + 德法西意荷等）", cc:["GB","IE","DE","FR","ES","IT","NL","BE","SE","NO","DK","FI","PL","PT","CH","AT"] },
+  "kr":            { label:"韩国", cc:["KR"] },
+  "jp":            { label:"日本", cc:["JP"] },
+  "sea":           { label:"东南亚（菲印马新泰越）", cc:["PH","ID","MY","SG","TH","VN"] },
+  "latam":         { label:"拉美（巴西墨西哥等）", cc:["BR","MX","AR","CL","CO"] },
+  "lowcost_ban":   { label:"排除低成本地区（印度/巴基斯坦/孟加拉等）", cc:["IN","PK","BD","NG","KE","EG"], exclude:true }
+};
+
+/* 信号权重 */
+const REGION_W = { L1: 10, MEDIUM_MIN: 6, CONFLICT_MIN: 8 };
+
+/* L2 文本线索规则：cc=国家码，w=单次命中权重，why=证据说明 */
+const REGION_TEXT_RULES = [
+  /* —— 美国 —— */
+  { cc:"US", w:4, why:"美元 USD / US$", re:/(?:US\s?\$|USD)/g },
+  { cc:"US", w:4, why:"华氏度（°F / Fahrenheit）", re:/(?:°\s?F\b|degrees?\s+Fahrenheit|\bFahrenheit\b)/g },
+  { cc:"US", w:3, why:"美式拼写（color / favorite / center...）", re:/\b(?:color|favorite|honor|neighbor|organize|organizing|realize|theater|center|defense|license|gray|traveling|canceled|airplane|truck|apartment|elevator|vacation|sidewalk|flashlight|diaper|sneakers)\b/g },
+  { cc:"US", w:3, why:"美国州名 / 城市", re:/\b(?:California|Texas|Florida|New York|Chicago|Los Angeles|Houston|Phoenix|Philadelphia|Atlanta|Seattle|Boston|Denver|Miami|Nashville|Detroit|Portland)\b/g },
+  { cc:"US", w:2, why:"两字母州缩写（, TX / , CA）", re:/,\s?(?:AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/g },
+
+  /* —— 加拿大 —— */
+  { cc:"CA", w:4, why:"加元 C$ / CAD", re:/(?:C\s?\$|CAD\b)/g },
+  { cc:"CA", w:4, why:"加拿大省名 / 城市", re:/\b(?:Ontario|Quebec|Québec|British Columbia|Alberta|Manitoba|Saskatchewan|Nova Scotia|New Brunswick|Newfoundland|Toronto|Vancouver|Montreal|Montréal|Ottawa|Calgary|Edmonton|Winnipeg)\b/g },
+  { cc:"CA", w:4, why:".ca 域名", re:/\.ca(?:[\/\s?]|$)/g },
+  { cc:"CA", w:2, why:"加拿大生活品牌 / 口语", re:/\b(?:Tim Hortons|Tims|Canadian Tire|eh)\b/g },
+
+  /* —— 英国 —— */
+  { cc:"GB", w:4, why:"英镑 £ / GBP", re:/(?:£|GBP\b)/g },
+  { cc:"GB", w:4, why:".co.uk / .uk 域名", re:/\.(?:co\.)?uk(?:[\/\s?]|$)/g },
+  { cc:"GB", w:3, why:"英国城市", re:/\b(?:London|Manchester|Birmingham|Leeds|Glasgow|Liverpool|Bristol|Edinburgh|Cardiff|Belfast|Sheffield|Newcastle)\b/g },
+  { cc:"GB", w:3, why:"英式拼写（colour / favourite / centre...）", re:/\b(?:colour|favourite|favorite\s+colour|honour|neighbour|organise|organising|realise|theatre|centre|defence|licence|grey|travelling|cancelled|aeroplane)\b/g },
+  { cc:"GB", w:2, why:"英式用词（football / lorry / flat / quid...）", re:/\b(?:football|lorry|petrol\s+station|\bflat\b|motorway|quid|bloke|biscuit|pavement|torch|trousers|trainers|nappy)\b/g },
+  { cc:"GB", w:2, why:"英国机构（NHS / BBC）", re:/\b(?:NHS|BBC)\b/g },
+
+  /* —— 爱尔兰 —— */
+  { cc:"IE", w:4, why:".ie 域名", re:/\.ie(?:[\/\s?]|$)/g },
+  { cc:"IE", w:4, why:"爱尔兰地名", re:/\b(?:Ireland|Dublin|Cork|Galway|Limerick|Waterford|Belfast\s*,\s*Ireland)\b/g },
+
+  /* —— 澳大利亚 —— */
+  { cc:"AU", w:4, why:"澳元 A$ / AUD", re:/(?:A\s?\$|AUD\b)/g },
+  { cc:"AU", w:4, why:".com.au / .au 域名", re:/\.(?:com\.)?au(?:[\/\s?]|$)/g },
+  { cc:"AU", w:4, why:"澳洲州名 / 城市", re:/\b(?:Sydney|Melbourne|Brisbane|Perth|Adelaide|Canberra|Gold Coast|New South Wales|Queensland|Tasmania|Western Australia|South Australia)\b/g },
+  { cc:"AU", w:2, why:"澳式口语 / 品牌", re:/\b(?:Aussie|arvo|servo|Footy|Optus|Telstra)\b/g },
+
+  /* —— 新西兰 —— */
+  { cc:"NZ", w:4, why:"新西兰元 NZ$ / NZD", re:/(?:NZ\s?\$|NZD\b)/g },
+  { cc:"NZ", w:4, why:".co.nz / .nz 域名", re:/\.(?:co\.)?nz(?:[\/\s?]|$)/g },
+  { cc:"NZ", w:4, why:"新西兰地名", re:/\b(?:New Zealand|Aotearoa|Auckland|Wellington|Christchurch|Hamilton|Queenstown)\b/g },
+
+  /* —— 印度 / 巴 / 孟（UA 投放常要排除的低成本区） —— */
+  { cc:"IN", w:4, why:"印度卢比 ₹ / INR / Rs.", re:/(?:₹|INR\b|Rs\.?\s?\d)/g },
+  { cc:"IN", w:4, why:"印度计数单位（crore / lakh）", re:/\b(?:crore|lakh)s?\b/g },
+  { cc:"IN", w:3, why:"印度城市 / 语言", re:/\b(?:Mumbai|Delhi|New Delhi|Bangalore|Bengaluru|Hyderabad|Chennai|Kolkata|Pune|Ahmedabad|Hindi)\b/g },
+  { cc:"IN", w:3, why:".in 域名", re:/\.in(?:[\/\s?]|$)/g },
+  { cc:"PK", w:4, why:"巴基斯坦地名 / 语言", re:/\b(?:Pakistan|Karachi|Lahore|Islamabad|Rawalpindi|Urdu)\b/g },
+  { cc:"BD", w:4, why:"孟加拉国地名 / 语言", re:/\b(?:Bangladesh|Dhaka|Chittagong|Bangla)\b/g },
+
+  /* —— 东南亚 —— */
+  { cc:"PH", w:4, why:"菲律宾地名 / 语言 / 货币", re:/\b(?:Philippines|Filipino|Tagalog|Manila|Cebu|Davao)\b|₱/g },
+  { cc:"ID", w:4, why:"印尼地名 / 语言 / 货币", re:/\b(?:Indonesia|Jakarta|Bahasa|Surabaya|Bandung)\b|\b(?:Rp|IDR)\b/g },
+  { cc:"MY", w:4, why:"马来西亚地名 / 语言", re:/\b(?:Malaysia|Kuala Lumpur|Selangor|Penang|Melayu)\b/g },
+  { cc:"SG", w:4, why:"新加坡地名", re:/\b(?:Singapore|SG\b)\b/g },
+  { cc:"TH", w:4, why:"泰语字符 / 泰国地名", re:/\b(?:Thailand|Bangkok)\b|[\u0E00-\u0E7F]/g },
+  { cc:"VN", w:4, why:"越南语 / 越南地名", re:/\b(?:Vietnam|Việt|Hanoi|Ho Chi Minh)\b/g },
+
+  /* —— 欧洲其他国家 —— */
+  { cc:"DE", w:4, why:"德语 / 德国地名", re:/\b(?:Deutschland|German|Germany|Berlin|München|Munich|Hamburg|Köln|Frankfurt)\b/g },
+  { cc:"FR", w:4, why:"法语 / 法国地名", re:/\b(?:France|français|Paris|Lyon|Marseille|Bordeaux)\b/g },
+  { cc:"ES", w:4, why:"西班牙语 / 西班牙地名", re:/\b(?:España|España|Spain|Madrid|Barcelona|Valencia)\b/g },
+  { cc:"IT", w:4, why:"意大利语 / 意大利地名", re:/\b(?:Italia|Italy|Milano|Roma|Napoli)\b/g },
+  { cc:"NL", w:4, why:"荷兰语 / 荷兰地名", re:/\b(?:Nederland|Netherlands|Amsterdam|Rotterdam)\b/g },
+  { cc:"SE", w:4, why:"瑞典语 / 瑞典地名", re:/\b(?:Sverige|Sweden|Stockholm|Göteborg)\b/g },
+  { cc:"TR", w:4, why:"土耳其语 / 土耳其地名", re:/\b(?:Türkiye|Turkey|İstanbul|Istanbul|Ankara|Türkçe)\b/g },
+  { cc:"PL", w:4, why:"波兰语 / 波兰地名", re:/\b(?:Polska|Poland|Warszawa|Kraków)\b/g },
+
+  /* —— 拉美 —— */
+  { cc:"BR", w:4, why:"葡萄牙语（巴西）/ 巴西地名", re:/\b(?:Brasil|Brazil|São Paulo|Rio de Janeiro|Português)\b|R\$/g },
+  { cc:"MX", w:4, why:"墨西哥地名 / 货币", re:/\b(?:México|Mexico|CDMX|Guadalajara|Monterrey)\b|MX\$/g },
+
+  /* —— 东亚（语言字符集，韩日已由 country 覆盖，这里作交叉验证） —— */
+  { cc:"KR", w:3, why:"韩文内容", re:/[\uAC00-\uD7AF]/g },
+  { cc:"JP", w:3, why:"日文假名内容", re:/[\u3040-\u30FF\u31F0-\u31FF]/g },
+  { cc:"CN", w:2, why:"中文内容", re:/[\u4E00-\u9FFF]/g },
+  { cc:"RU", w:4, why:"西里尔字母（俄语区）", re:/[\u0400-\u04FF]/g },
+  { cc:"SA", w:3, why:"阿拉伯字母（中东）", re:/[\u0600-\u06FF]/g }
+];
+
+/* 电话国际区号（+1 美加共用权重要低，+44 英国这类独占权重高） */
+const PHONE_RULES = [
+  { cc:"GB", w:3, why:"英国电话区号 +44", re:/\+\s?44[\s\-.]?\d/g },
+  { cc:"AU", w:3, why:"澳洲电话区号 +61", re:/\+\s?61[\s\-.]?\d/g },
+  { cc:"IE", w:3, why:"爱尔兰电话区号 +353", re:/\+\s?353[\s\-.]?\d/g },
+  { cc:"NZ", w:3, why:"新西兰电话区号 +64", re:/\+\s?64[\s\-.]?\d/g },
+  { cc:"IN", w:3, why:"印度电话区号 +91", re:/\+\s?91[\s\-.]?\d/g },
+  { cc:"US", w:1, why:"北美电话区号 +1（美加共用，弱信号）", re:/\+\s?1[\s\-.]?\d{3}/g },
+  { cc:"CA", w:1, why:"北美电话区号 +1（美加共用，弱信号）", re:/\+\s?1[\s\-.]?\d{3}/g }
+];
+
+const CONF_CN = { high:"高", medium:"中", unknown:"待确认" };
+
+/**
+ * 判定单个频道的地区。
+ * @param {object} p  { country, title, desc, titles[] }
+ * @param {object} recall 可选，L3 跨区召回计数，如 { US:3, GB:0, CA:1 }
+ * @returns {object} { region, confidence, evidence[], scores{}, note }
+ */
+function detectRegion(p, recall) {
+  const parts = [p.title || "", p.desc || "", (p.titles || []).join(" \n ")].join(" \n ");
+  const scores = {};
+  const evidence = [];
+  const cc = String(p.country || "").trim().toUpperCase();
+
+  /* ---- L1：country 字段（硬信号） ---- */
+  if (cc && COUNTRY_CN[cc]) {
+    scores[cc] = (scores[cc] || 0) + REGION_W.L1;
+    evidence.push({ lv:"L1", cc:cc, why:"频道 country 字段 = " + cc });
+  }
+
+  /* ---- L2：文本线索（含电话区号） ---- */
+  for (const r of REGION_TEXT_RULES.concat(PHONE_RULES)) {
+    let m = null;
+    try { m = parts.match(r.re); } catch (e) { continue; }
+    if (!m || !m.length) continue;
+    const times = Math.min(m.length, 3);
+    const add = r.w * times;
+    scores[r.cc] = (scores[r.cc] || 0) + add;
+    evidence.push({ lv:"L2", cc:r.cc, why:r.why + (m.length > 1 ? "（命中 " + m.length + " 次）" : "") });
+  }
+
+  /* ---- L3：跨区召回差异（弱信号，仅在开启时才有数据） ---- */
+  if (recall) {
+    const vals = Object.values(recall);
+    const total = vals.reduce((a, b) => a + b, 0) || 1;
+    for (const k in recall) {
+      if (!recall[k]) continue;
+      const share = recall[k] / total;
+      const add = share >= 0.75 ? 4 : (share >= 0.5 ? 2 : 0);
+      if (!add) continue;
+      scores[k] = (scores[k] || 0) + add;
+      evidence.push({ lv:"L3", cc:k, why:"该频道 " + Math.round(share * 100) + "% 的召回来自 " + k + " 区搜索" });
+    }
+  }
+
+  /* ---- 汇总判定 ---- */
+  const entries = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  let region = "", confidence = "unknown", note = "";
+
+  if (cc && COUNTRY_CN[cc]) {
+    region = cc;
+    const selfText = (scores[cc] || 0) - REGION_W.L1;   // 去掉 L1 加成，只看文本侧证据
+    const top = entries[0];
+    if (top && top[0] !== cc && top[1] >= REGION_W.CONFLICT_MIN && top[1] > selfText) {
+      confidence = "medium";
+      note = "country 显示 " + cc + "，但内容线索更指向 " + top[0] + "，建议人工确认";
+    } else {
+      confidence = "high";
+      note = selfText > 0 ? "country 与内容线索一致" : "country 字段明确（无内容线索可交叉验证）";
+    }
+  } else if (entries.length) {
+    const best = entries[0], second = entries[1];
+    if (best[1] >= REGION_W.MEDIUM_MIN && best[1] >= (second ? second[1] : 0) * 1.5) {
+      region = best[0];
+      confidence = "medium";
+      note = "country 字段缺失，依据内容线索判定";
+    } else if (best[1] >= REGION_W.MEDIUM_MIN) {
+      region = best[0];
+      confidence = "unknown";
+      note = "多个地区信号接近（" + best[0] + " 与 " + (second ? second[0] : "-") + "），证据不足";
+    } else if (best[1] > 0) {
+      region = best[0];
+      confidence = "unknown";
+      const onlyCross = evidence.length && evidence.every(e => e.lv === "L3");
+      note = onlyCross
+        ? "仅靠跨区召回差异判断（第三层弱信号），建议人工确认或开启更严格的过滤"
+        : "信号太弱，无法判定";
+    } else {
+      note = "无任何可用地区信号";
+    }
+  } else {
+    note = "无任何可用地区信号";
+  }
+
+  return { region: region, confidence: confidence, note: note, evidence: evidence, scores: scores };
+}
+
+/* 频道是否满足地区筛选条件 */
+function regionMatch(rg, filterVal) {
+  if (!filterVal || filterVal === "any") return true;
+  const g = REGION_GROUPS[filterVal];
+  if (g) {
+    const inGroup = g.cc.includes(rg.region);
+    return g.exclude ? !inGroup : inGroup;
+  }
+  const list = filterVal.split(",").map(s => s.trim()).filter(Boolean);
+  return list.includes(rg.region);
+}
+
+/* 置信度是否达标 */
+function confMatch(conf, minVal) {
+  if (!minVal || minVal === "any") return true;
+  if (minVal === "high") return conf === "high";
+  if (minVal === "medium") return conf === "high" || conf === "medium";
+  return true;
+}
+
+/* ============ 步骤实现 ============ */
+/* 把「频道区域」映射成 YouTube search 的 regionCode，让视频搜索限定在该地区 */
+function regionCodeForSearch() {
+  const r = ($("region") && $("region").value) || "KR";
+  return /^[A-Z]{2}$/.test(r) ? r : "";
+}
+/* 跨区召回校验要用到的对照区（默认美 / 加 / 英，英语区最容易混淆） */
+function crossCheckRegions() {
+  const el = $("crossRegions");
+  if (!el || !el.value) return ["US","CA","GB"];
+  return el.value.split(",").map(s => s.trim().toUpperCase()).filter(s => /^[A-Z]{2}$/.test(s));
+}
+
+async function stepSearch(queries) {
+  if (!queries.length) throw new Error("没有搜索词，请先在②‑b 处设置核心词或输入搜索词。");
+  const hangulOnly = $("hangulOnly").value === "1";
+  const rc = regionCodeForSearch();
+  /* 第三层信号（可选）：同一批搜索词再在对照区各搜一遍，看频道只在哪个区稳定出现。
+     开启后每个搜索词会额外消耗 100 × 对照区数量 的配额。 */
+  const crossOn = $("crossCheck") && $("crossCheck").value === "1";
+  const crossRcs = crossOn ? crossCheckRegions().filter(r => r !== rc) : [];
+  state.candidates = {};
+  state.regionRecall = {};
+  const seen = new Set();
+  let total = 0, hitCache = 0, newSearch = 0, crossUnits = 0;
+
+  const bumpRecall = (cid, region) => {
+    const k = region || "GLOBAL";
+    if (!state.regionRecall[cid]) state.regionRecall[cid] = {};
+    state.regionRecall[cid][k] = (state.regionRecall[cid][k] || 0) + 1;
+  };
+  const doSearch = async (q, region) => {
+    const cached = getCachedQuery(q, region);
+    if (cached) return { items: cached.items, cached: true };
+    const params = { part:"snippet", q:q, type:"video", maxResults:50 };
+    if (region) params.regionCode = region;
+    const data = await api("search", params);
+    setCachedQuery(q, data.items || [], region);
+    await sleep(150);
+    return { items: data.items || [], cached: false };
+  };
+  const collect = (items, region) => {
+    for (const it of items) {
+      const sn = it.snippet || {};
+      const cid = sn.channelId;
+      if (!cid) continue;
+      bumpRecall(cid, region);
+      if (region !== rc) continue;   // 候选池只收主搜索区，对照区仅用于统计地区倾向
+      if (seen.has(cid)) continue;
+      const chTitle = sn.channelTitle || "";
+      if (hangulOnly && !HANGUL_RE.test(chTitle)) continue;
+      const ng = isNonGameChannel(chTitle, "");
+      if (ng.blocked) { log("排除非游戏频道：" + chTitle + "（命中关键词：" + ng.reason + "）", "warn"); continue; }
+      seen.add(cid);
+      state.candidates[cid] = { title: chTitle, desc: "" };
+    }
+  };
+
+  for (let qi = 0; qi < queries.length; qi++) {
+    const q = queries[qi].trim();
+    if (!q) continue;
+    setProgress("搜索中：" + q + "（" + (qi+1) + "/" + queries.length + "）", Math.round(qi/queries.length*60));
+    const r1 = await doSearch(q, rc);
+    if (r1.cached) hitCache++; else newSearch++;
+    log("搜索词「" + q + "」在 " + (rc || "不限地区") + " 召回 " + r1.items.length + " 条视频" + (r1.cached ? "（命中缓存，0 单位）" : "（100 单位）"), "ok");
+    collect(r1.items, rc);
+    total += r1.items.length;
+
+    if (crossRcs.length) {
+      for (const xr of crossRcs) {
+        const r2 = await doSearch(q, xr);
+        collect(r2.items, xr);
+        if (!r2.cached) crossUnits += 100;
+      }
+      log("　└ 跨区校验：" + crossRcs.join(" / ") + " 各搜一遍完成", "ok");
+    }
+  }
+  updateCacheCount();
+  log("从视频反查出候选频道共 " + Object.keys(state.candidates).length + " 个（" + hitCache + " 词命中缓存，" + newSearch + " 词新搜索" + (crossUnits ? "，跨区校验额外 " + crossUnits + " 单位" : "") + "）", "info");
+  if (crossRcs.length) log("已记录跨区召回差异，将在步骤3 的地区判定中作为第三层信号使用", "info");
+}
+
+/* 地区判定：纯本地计算，不消耗配额。
+   数据优先用深抓结果（含近期视频标题，文本线索更充分），没有深抓就退化为标题+简介。 */
+function computeRegions() {
+  state.regions = {};
+  const src = Object.keys(state.deep).length ? state.deep : state.profiles;
+  let hi = 0, mid = 0, unk = 0;
+  for (const cid in src) {
+    const p = src[cid];
+    const rg = detectRegion(
+      { country: p.country, title: p.title, desc: p.desc, titles: p.titles || [] },
+      state.regionRecall[cid] || null
+    );
+    state.regions[cid] = rg;
+    const a = state.analysis[cid];
+    if (a) { a.region = rg.region; a.region_conf = rg.confidence; a.region_note = rg.note; }
+    if (rg.confidence === "high") hi++;
+    else if (rg.confidence === "medium") mid++;
+    else unk++;
+  }
+  log("地区判定完成：高置信 " + hi + " 个 / 中置信 " + mid + " 个 / 待确认 " + unk + " 个" +
+      (Object.keys(state.regionRecall).length ? "（已并入跨区召回信号）" : ""), "info");
+  if (unk > 0) log("提示：待确认的频道不代表判不出来就一定是目标地区，只是公开信号不足，建议人工点开确认或交给 Google Ads 地理定向兜底", "warn");
+}
+
+async function stepProfiles() {
+  const ids = Object.keys(state.candidates);
+  if (!ids.length) throw new Error("还没有候选频道，请先执行步骤1。");
+  state.profiles = {};
+  for (let i = 0; i < ids.length; i += 50) {
+    const batch = ids.slice(i, i+50);
+    setProgress("抓取档案 " + (i+1) + "/" + ids.length, Math.round(i/ids.length*15));
+    const data = await api("channels", { part:"snippet,statistics,contentDetails", id: batch.join(",") });
+    for (const it of (data.items||[])) {
+      const cid = it.id;
+      const st = it.statistics||{}, sn = it.snippet||{};
+      state.profiles[cid] = {
+        title: sn.title||"", desc: sn.description||"", country: sn.country||"", created: sn.publishedAt||"",
+        subs: parseInt(st.subscriberCount||"0",10), videos: parseInt(st.videoCount||"0",10), views: parseInt(st.viewCount||"0",10),
+        uploads: ((it.contentDetails||{}).relatedPlaylists||{}).uploads||""
+      };
+    }
+    await sleep(150);
+  }
+  log("已抓取 " + Object.keys(state.profiles).length + " 个频道档案", "info");
+  computeRegions();
+}
+
+async function stepDeep() {
+  const subsMin = parseInt($("subsMin").value||"0",10);
+  const subsMax = parseInt($("subsMax").value||"0",10);
+  state.deep = {};
+  state.analysis = {};
+  state.platformExcludedCount = 0;
+  const list = Object.entries(state.profiles)
+    .filter(([cid, p]) => p.subs >= subsMin && p.subs <= subsMax && p.uploads)
+    .sort((a, b) => b[1].subs - a[1].subs);
+  if (!list.length) throw new Error("粉丝范围内没有可深抓的频道。");
+  log("待深抓频道 " + list.length + " 个（已按粉丝范围预筛）", "info");
+  for (let idx = 0; idx < list.length; idx++) {
+    const [cid, p] = list[idx];
+    setProgress("深抓分类 " + (idx+1) + "/" + list.length + " · " + p.title, 15 + Math.round(idx/list.length*50));
+    const titles = [], dates = [];
+    let nextToken = null;
+    for (let page = 0; page < 2; page++) {
+      const params = { part:"snippet,contentDetails", playlistId: p.uploads, maxResults:50 };
+      if (nextToken) params.pageToken = nextToken;
+      try {
+        const data = await api("playlistItems", params);
+        for (const it of (data.items||[])) {
+          const sn = it.snippet||{};
+          titles.push(sn.title||"");
+          dates.push(sn.publishedAt||"");
+        }
+        nextToken = data.nextPageToken;
+        if (!nextToken) break;
+      } catch (e) { log("深抓失败：" + p.title + " · " + e.message, "err"); break; }
+      await sleep(120);
+    }
+    state.deep[cid] = { title:p.title, subs:p.subs, country:p.country, created:p.created, desc:p.desc, titles, dates, total_videos:p.videos, uploads:p.uploads };
+    const a = analyzeChannel(cid, state.deep[cid]);
+    /* 平台前置判断：目标平台不匹配的频道标记跳过，后面不再算均播、不进结果表 */
+    if (isPlatformMismatch(a)) {
+      a.platformSkip = true;
+      state.platformExcludedCount++;
+      log("平台前置排除：" + p.title + "（手游 " + a.mobile_pct + "% / PC " + a.pc_pct + "% / 主机 " + a.console_pct + "%）→ 跳过均播，不进结果表", "warn");
+    }
+    state.analysis[cid] = a;
+    await sleep(120);
+  }
+  if (state.platformExcludedCount > 0) {
+    log("平台前置判断：共排除 " + state.platformExcludedCount + " 个与目标平台不匹配的频道（后续不再分析均播）", "info");
+  }
+  /* 地区判定放在深抓之后：此时有完整视频标题，文本线索最充分 */
+  computeRegions();
+  log("深抓并分类完成，共 " + Object.keys(state.deep).length + " 个频道", "info");
+}
+
+async function stepAvgviews() {
+  const limit = parseInt($("avgLimit").value||"30",10);
+  state.avgviews = {};
+  const skipped = Object.values(state.analysis).filter(a => a.platformSkip).length;
+  const list = Object.entries(state.analysis).filter(([cid,a]) => !a.platformSkip).sort((a,b)=>b[1].subs-a[1].subs).slice(0, limit);
+  if (!list.length) throw new Error("还没有分类结果（或全部被平台前置排除），请先执行步骤3。");
+  log("计算均播：取订阅数最高的 " + list.length + " 个频道" + (skipped ? "（已跳过 " + skipped + " 个平台不匹配频道）" : ""), "info");
+  for (let idx = 0; idx < list.length; idx++) {
+    const [cid, a] = list[idx];
+    setProgress("算均播 " + (idx+1) + "/" + list.length + " · " + a.title, 65 + Math.round(idx/list.length*20));
+    const videoIds = [];
+    let nextToken = null;
+    for (let page = 0; page < 1; page++) {
+      const params = { part:"contentDetails", playlistId: a.uploads, maxResults:50 };
+      if (nextToken) params.pageToken = nextToken;
+      try {
+        const data = await api("playlistItems", params);
+        for (const it of (data.items||[])) {
+          const vid = (it.contentDetails||{}).videoId;
+          if (vid) videoIds.push(vid);
+        }
+        nextToken = data.nextPageToken;
+      } catch (e) { log("均播抓取失败：" + a.title + " · " + e.message, "err"); break; }
+      await sleep(120);
+    }
+    const views = [];
+    for (let i = 0; i < videoIds.length; i += 50) {
+      const batch = videoIds.slice(i, i+50);
+      try {
+        const data = await api("videos", { part:"statistics", id: batch.join(",") });
+        for (const it of (data.items||[])) views.push(parseInt((it.statistics||{}).viewCount||"0",10));
+      } catch (e) { log("播放量抓取失败：" + a.title + " · " + e.message, "err"); }
+      await sleep(120);
+    }
+    state.avgviews[cid] = {
+      avg_views: views.length ? Math.round(views.reduce((x,y)=>x+y,0)/views.length) : 0,
+      median_views: views.length ? views.slice().sort((x,y)=>x-y)[Math.floor(views.length/2)] : 0,
+      n: views.length
+    };
+    await sleep(120);
+  }
+  log("均播计算完成，共 " + Object.keys(state.avgviews).length + " 个频道", "info");
+}
+
+/* ============ 筛选与渲染 ============ */
+function getTargetPlatform() {
+  const el = $("targetPlatform");
+  return el ? el.value : "mobile";
+}
+
+/* 频道主导平台判断：PC+主机占比 > 50% 视为 PC/主机向；手游占比 > 50% 视为手游向；否则混合 */
+function platformOf(a) {
+  const pcCon = (a.pc_pct||0) + (a.console_pct||0);
+  if (pcCon > 50) return "pc_console";
+  if ((a.mobile_pct||0) > 50) return "mobile";
+  return "mixed";
+}
+
+/* 平台前置判断：目标平台与频道主导平台不匹配则返回 true（应排除）。
+ * 用户确认规则：对立平台内容占比 > 50% 判为不匹配。
+ * - 目标=mobile：PC+主机占比 > 50% → 排除（PC/主机向频道）
+ * - 目标=pc / console：手游占比 > 50% → 排除（手游向频道）
+ * - 目标=any：不判断 */
+function isPlatformMismatch(a) {
+  const target = getTargetPlatform();
+  if (target === "any") return false;
+  const pcCon = (a.pc_pct||0) + (a.console_pct||0);
+  if (target === "mobile") return pcCon > 50;
+  return (a.mobile_pct||0) > 50;
+}
+
+function makeNote(a, avg) {
+  const notes = [];
+  if (a.anime_pct >= 60) notes.push("二次元含量高");
+  if (a.subs >= 30000 && avg && avg.avg_views < 5000) notes.push("粉丝多但均播低");
+  if (a.gangstar_hard_pct >= 30) notes.push("题材强贴近Gangstar(犯罪/黑帮)");
+  else if (a.gangstar_pct >= 40 && a.anime_pct < 30) notes.push("玩法贴近Gangstar(枪战射击)");
+  if (a.top_games.length === 1 && a.videos_analyzed >= 8) notes.push("疑似单游戏频道");
+  return notes;
+}
+
+function applyFilters() {
+  const subsMin = parseInt($("subsMin").value||"0",10);
+  const subsMax = parseInt($("subsMax").value||"0",10);
+  const activeWindow = parseInt($("activeWindow").value||"0",10);
+  const emailOnly = $("emailOnly").value === "1";
+  const checkedGenres = [...document.querySelectorAll("#genreChips .chip.on")].map(c => c.dataset.g);
+  const regionFilterVal = ($("regionFilter") && $("regionFilter").value) || "any";
+  const regionConfVal = ($("regionConf") && $("regionConf").value) || "any";
+  let regionExcluded = 0;
+  const now = new Date();
+  const rows = [];
+  for (const cid in state.analysis) {
+    const a = state.analysis[cid];
+    const avg = state.avgviews[cid] || { avg_views:0, median_views:0, n:0 };
+    /* 平台前置拦截：目标平台与频道主导平台不匹配，直接排除（最高优先级） */
+    if (isPlatformMismatch(a)) continue;
+    if (a.subs < subsMin || a.subs > subsMax) continue;
+    if (activeWindow > 0) {
+      if (!a.last_video) continue;
+      const d = new Date(a.last_video);
+      if (isNaN(d) || (now - d) > activeWindow*86400000) continue;
+    }
+    if (checkedGenres.length && !checkedGenres.some(g => a.top3_genres.includes(g))) continue;
+    if (emailOnly && !a.emails.length) continue;
+    /* 地区筛选：按三层信号判定出的国家 + 置信度门槛过滤（地区信号不足的会被「仅中置信及以上」挡掉） */
+    const rg = state.regions[cid] || { region:"", confidence:"unknown", note:"", evidence:[] };
+    if (!regionMatch(rg, regionFilterVal) || !confMatch(rg.confidence, regionConfVal)) { regionExcluded++; continue; }
+    /* 第二层安全网：再次检查非游戏实体（防止漏网） */
+    const deepData = state.deep[cid];
+    if (deepData) {
+      const ng2 = isNonGameChannel(deepData.title, deepData.desc);
+      if (ng2.blocked) continue;
+    }
+    /* 第三层：游戏内容质量校验 — 完全没有游戏信号的频道排除。
+     * 同时满足以下条件视为非游戏频道：
+     * - gangstar_pct == 0（无任何犯罪/枪战/射击信号）
+     * - top_games 为空（没识别到任何具体游戏名）
+     * - top3_genres 只有 news/sports/casual/simulation 中的非游戏品类
+     * - videos_analyzed >= 3（有足够样本才判断，避免误杀小号） */
+    const NON_GAME_GENRES = ["news","sports","casual","simulation"];
+    if (a.videos_analyzed >= 3 && a.gangstar_pct === 0 &&
+        (!a.top_games || a.top_games.length === 0) &&
+        a.top3_genres.every(g => NON_GAME_GENRES.includes(g))) {
+      continue;
+    }
+    rows.push({ cid, a, avg, rg });
+  }
+  rows.sort((x,y)=>y.a.subs-x.a.subs);
+  state.rows = rows;
+  state.regionExcludedCount = regionExcluded;
+  return rows;
+}
+
+function renderTable() {
+  const rows = applyFilters();
+  $("resultCard").classList.remove("hidden");
+  /* 地区分布与置信度统计 */
+  const dist = {};
+  let hiN = 0, midN = 0, unkN = 0;
+  for (const r of rows) {
+    const rrg = r.rg || {};
+    const k = rrg.region ? ((COUNTRY_CN[rrg.region] || rrg.region) + " " + rrg.region) : "未知";
+    dist[k] = (dist[k] || 0) + 1;
+    if (rrg.confidence === "high") hiN++;
+    else if (rrg.confidence === "medium") midN++;
+    else unkN++;
+  }
+  const distStr = Object.entries(dist).sort((a,b) => b[1]-a[1]).map(x => x[0] + " " + x[1]).join("　·　");
+  $("resultSummary").innerHTML = "符合条件共 <b>" + rows.length + "</b> 个频道。点击表头可排序，勾选后导出 CSV。"
+    + (distStr ? "<br>地区分布：" + esc(distStr) : "")
+    + "<br>地区置信度：高 " + hiN + " · 中 " + midN + " · 待确认 " + unkN
+    + "　<span style=\"color:var(--muted)\">（鼠标悬停地区标签可看判定依据）</span>"
+    + (state.regionExcludedCount ? "<br>另有 " + state.regionExcludedCount + " 个频道被地区条件挡掉。" : "");
+
+  const head = $("resultHead");
+  const cols = [
+    ["sel","✓"],["name","用户名"],["region","地区"],["conf","置信度"],["subs","粉丝量"],["genres","主要游戏类型"],["games","视频内容类型"],
+    ["avg","均播"],["active","活跃度"],["email","邮箱"],["mobile","平台(手/PC/主机)"],["anime","二次元占比"],
+    ["gangstar","题材重合"],["note","备注"]
+  ];
+  head.innerHTML = "<tr>" + cols.map((c,i) => {
+    const sortable = ["subs","avg","active","mobile","anime","gangstar"].includes(c[0]);
+    const arr = state.sortCol === c[0] ? '<span class="arr">' + (state.sortDir>0?"▲":"▼") + "</span>" : "";
+    return '<th' + (sortable ? ' class="sortable" data-col="'+c[0]+'"' : '') + '>' + c[1] + arr + '</th>';
+  }).join("") + "</tr>";
+
+  const body = $("resultBody");
+  body.innerHTML = rows.map(r => {
+    const a = r.a, avg = r.avg;
+    const url = "https://www.youtube.com/channel/" + r.cid;
+    const genreTags = a.top3_genres.map(g => '<span class="tag">' + GENRE_LABEL[g] + "</span>").join("") || '<span class="muted">-</span>';
+    const gameTags = a.top_games.map(g => '<span class="tag">' + esc(g) + "</span>").join("") || '<span class="muted">-</span>';
+    const emailStr = a.emails.length ? a.emails.map(e=>'<span class="email">'+esc(e)+"</span>").join("<br>") : '<span class="muted">无</span>';
+    const notes = makeNote(a, avg);
+    const noteStr = notes.map(n => {
+      let cls = "warn";
+      if (n.includes("贴近Gangstar")) cls = "good";
+      if (n.includes("均播低")) cls = "bad";
+      if (n.includes("二次元")) cls = "anime";
+      return '<span class="tag ' + cls + '">' + n + "</span>";
+    }).join("") || '<span class="muted">-</span>';
+    const animeTag = a.anime_pct >= 60 ? '<span class="tag anime">' + a.anime_pct + "%</span>" : a.anime_pct + "%";
+    /* 地区与置信度：悬停显示三层信号的判定依据 */
+    const rg = r.rg || { region:"", confidence:"unknown", note:"", evidence:[] };
+    const confCls = rg.confidence === "high" ? "conf-high" : (rg.confidence === "medium" ? "conf-mid" : "conf-unk");
+    const regionTxt = rg.region ? ((COUNTRY_CN[rg.region] || rg.region) + " " + rg.region) : "未知";
+    const evTxt = (rg.evidence && rg.evidence.length)
+      ? "\n\n判定依据：\n" + rg.evidence.slice(0, 8).map(e => "[" + e.lv + "] " + e.why).join("\n")
+      : "";
+    const regionCell = '<span class="conf ' + confCls + '" title="' + esc((rg.note || "") + evTxt) + '">' + esc(regionTxt) + "</span>";
+    const confCell = '<span class="conf ' + confCls + '">' + (CONF_CN[rg.confidence] || "-") + "</span>";
+    const checked = state.selectAll ? "checked" : "";
+    return '<tr data-cid="' + r.cid + '" class="' + (state.selectAll?"selected":"") + '">' +
+      '<td><input type="checkbox" class="rowchk" ' + checked + '></td>' +
+      '<td><a class="ch-link" href="' + url + '" target="_blank">' + esc(a.title) + "</a></td>" +
+      "<td>" + regionCell + "</td>" +
+      "<td>" + confCell + "</td>" +
+      '<td class="num">' + a.subs.toLocaleString() + "</td>" +
+      "<td>" + genreTags + "</td>" +
+      "<td>" + gameTags + "</td>" +
+      '<td class="num">' + (avg.n ? avg.avg_views.toLocaleString() : '<span class="muted">未算</span>') + "</td>" +
+      "<td>" + (a.last_video || '<span class="muted">-</span>') + "</td>" +
+      "<td>" + emailStr + "</td>" +
+      '<td class="num">' + a.mobile_pct + '%<div style="font-size:11px;color:var(--muted)">PC ' + (a.pc_pct||0) + '% · 主机 ' + (a.console_pct||0) + '%</div></td>' +
+      '<td class="num">' + animeTag + "</td>" +
+      '<td class="num">' + a.gangstar_pct + '%<div style="font-size:11px;color:var(--muted)">硬核' + a.gangstar_hard_pct + '%</div></td>' +
+      "<td>" + noteStr + "</td>" +
+      "</tr>";
+  }).join("");
+
+  head.querySelectorAll("th.sortable").forEach(th => th.addEventListener("click", () => sortBy(th.dataset.col)));
+  body.querySelectorAll(".rowchk").forEach(chk => chk.addEventListener("change", e => {
+    e.target.closest("tr").classList.toggle("selected", e.target.checked);
+  }));
+}
+
+function sortBy(col) {
+  if (state.sortCol === col) state.sortDir = -state.sortDir;
+  else { state.sortCol = col; state.sortDir = -1; }
+  const keyMap = { subs:"a.subs", avg:"avg.avg_views", active:"a.last_video", mobile:"a.mobile_pct", anime:"a.anime_pct", gangstar:"a.gangstar_pct" };
+  const k = keyMap[col];
+  state.rows.sort((x,y) => {
+    let vx, vy;
+    if (k === "a.subs") { vx = x.a.subs; vy = y.a.subs; }
+    else if (k === "avg.avg_views") { vx = x.avg.avg_views; vy = y.avg.avg_views; }
+    else if (k === "a.last_video") { vx = x.a.last_video; vy = y.a.last_video; }
+    else if (k === "a.mobile_pct") { vx = x.a.mobile_pct; vy = y.a.mobile_pct; }
+    else if (k === "a.anime_pct") { vx = x.a.anime_pct; vy = y.a.anime_pct; }
+    else if (k === "a.gangstar_pct") { vx = x.a.gangstar_pct; vy = y.a.gangstar_pct; }
+    if (vx < vy) return -state.sortDir;
+    if (vx > vy) return state.sortDir;
+    return 0;
+  });
+  renderTable();
+}
+
+function toCSV(rows) {
+  const header = ["用户名","平台","平台链接","粉丝量","地区","地区置信度","地区判定依据","频道主要游戏类型","视频内容类型","均播","活跃度","邮箱","平台(手/PC/主机)","二次元占比","与Gangstar用户重合度","备注"];
+  const lines = [header.join(",")];
+  for (const r of rows) {
+    const a = r.a, avg = r.avg;
+    const rg = r.rg || {};
+    const cell = (v) => '"' + String(v==null?"":v).replace(/"/g,'""') + '"';
+    const row = [
+      a.title, "YouTube", "https://www.youtube.com/channel/" + r.cid,
+      a.subs,
+      rg.region ? ((COUNTRY_CN[rg.region] || rg.region) + " " + rg.region) : "未知",
+      CONF_CN[rg.confidence] || "待确认",
+      ((rg.evidence || []).slice(0, 5).map(e => "[" + e.lv + "]" + e.why).join("；") || rg.note || "无可用信号"),
+      a.top3_genres.map(g=>GENRE_LABEL[g]).join("、"), (a.top_games||[]).join("、"),
+      avg.n ? avg.avg_views : "", a.last_video, a.emails.join(" / "),
+      a.mobile_pct+"%/PC "+(a.pc_pct||0)+"%/主机 "+(a.console_pct||0)+"%", a.anime_pct+"%", a.gangstar_pct+"%（硬核"+a.gangstar_hard_pct+"%）", makeNote(a,avg).join("、")
+    ];
+    lines.push(row.map(cell).join(","));
+  }
+  return "\ufeff" + lines.join("\r\n");
+}
+
+function downloadCSV(rows, filename) {
+  const blob = new Blob([toCSV(rows)], { type:"text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+}
+
+function getCheckedRows() {
+  const cids = new Set([...document.querySelectorAll("#resultBody .rowchk:checked")].map(c => c.closest("tr").dataset.cid));
+  return state.rows.filter(r => cids.has(r.cid));
+}
+
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) {}
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) {}
+  ta.remove();
+  return ok;
+}
+
+async function copyLinks() {
+  const rows = getCheckedRows();
+  if (!rows.length) { alert("请先勾选要复制链接的频道。"); return; }
+  const text = rows.map(r => "https://www.youtube.com/channel/" + r.cid).join("\n");
+  const ok = await copyText(text);
+  alert(ok ? "已复制 " + rows.length + " 个频道链接。" : "复制失败，请手动选中链接后复制。");
+}
+
+function toTextTable(rows) {
+  const header = ["用户名","粉丝量","地区","地区置信度","主要游戏类型","视频内容类型","均播","活跃度","邮箱","平台(手/PC/主机)","二次元占比","题材重合","链接"];
+  const lines = [header.join("\t")];
+  for (const r of rows) {
+    const a = r.a, avg = r.avg;
+    const rg = r.rg || {};
+    lines.push([
+      a.title, a.subs,
+      rg.region ? ((COUNTRY_CN[rg.region] || rg.region) + " " + rg.region) : "未知",
+      CONF_CN[rg.confidence] || "待确认",
+      a.top3_genres.map(g=>GENRE_LABEL[g]).join("、"),
+      (a.top_games||[]).join("、"),
+      avg.n ? avg.avg_views : "",
+      a.last_video, a.emails.join(" / "),
+      a.mobile_pct+"%/PC "+(a.pc_pct||0)+"%/主机 "+(a.console_pct||0)+"%", a.anime_pct+"%", a.gangstar_pct+"%（硬核"+a.gangstar_hard_pct+"%）",
+      "https://www.youtube.com/channel/" + r.cid
+    ].join("\t"));
+  }
+  return lines.join("\n");
+}
+
+async function copyTable() {
+  if (!state.rows.length) { alert("没有可复制的结果，请先运行。"); return; }
+  const ok = await copyText(toTextTable(state.rows));
+  alert(ok ? "已复制全部 " + state.rows.length + " 行，可直接粘贴到 Excel 或聊天窗口。" : "复制失败，请手动选中后复制。");
+}
+
+function buildReportHTML(rows) {
+  const now = new Date().toLocaleString("zh-CN");
+  const header = ["用户名","粉丝量","地区","置信度","主要游戏类型","视频内容类型","均播","活跃度","邮箱","平台(手/PC/主机)","二次元占比","题材重合"];
+  const bodyRows = rows.map(r => {
+    const a = r.a, avg = r.avg;
+    const rg = r.rg || {};
+    const email = a.emails.length ? a.emails.join("、") : "-";
+    const confColor = rg.confidence === "high" ? "#16a34a" : (rg.confidence === "medium" ? "#b45309" : "#9ca3af");
+    return "<tr>" +
+      '<td><a href="https://www.youtube.com/channel/' + r.cid + '" target="_blank">' + esc(a.title) + "</a></td>" +
+      '<td class="num">' + a.subs.toLocaleString() + "</td>" +
+      '<td><b>' + esc(rg.region ? ((COUNTRY_CN[rg.region] || rg.region) + " " + rg.region) : "未知") + "</b>" +
+        (rg.note ? '<div style="font-size:11px;color:#888;font-weight:400">' + esc(rg.note) + "</div>" : "") + "</td>" +
+      '<td style="color:' + confColor + ';font-weight:600">' + (CONF_CN[rg.confidence] || "待确认") + "</td>" +
+      "<td>" + a.top3_genres.map(g=>GENRE_LABEL[g]).join("、") + "</td>" +
+      "<td>" + (a.top_games||[]).map(esc).join("、") + "</td>" +
+      '<td class="num">' + (avg.n ? avg.avg_views.toLocaleString() : "-") + "</td>" +
+      "<td>" + (a.last_video||"-") + "</td>" +
+      "<td>" + esc(email) + "</td>" +
+      '<td class="num">' + a.mobile_pct + '% / PC ' + (a.pc_pct||0) + '% / 主机 ' + (a.console_pct||0) + '%</td>' +
+      '<td class="num">' + a.anime_pct + "%</td>" +
+      '<td class="num">' + a.gangstar_pct + '%<div style="font-size:11px;color:#888">硬核' + a.gangstar_hard_pct + '%</div></td>' +
+      "</tr>";
+  }).join("");
+  return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    "<title>Gangstar 韩区手游 KOC 候选报告</title>" +
+    "<style>" +
+    "body{font-family:-apple-system,'Segoe UI','Malgun Gothic','Apple SD Gothic Neo',sans-serif;margin:0;padding:32px;background:#f5f6f8;color:#1f2329;}" +
+    ".wrap{max-width:1200px;margin:0 auto;background:#fff;border-radius:12px;padding:28px;box-shadow:0 1px 3px rgba(0,0,0,.08);}" +
+    "h1{font-size:20px;margin:0 0 6px;} .sub{color:#666;font-size:13px;margin:0 0 20px;}" +
+    "table{width:100%;border-collapse:collapse;font-size:13px;} " +
+    "th,td{padding:9px 8px;border-bottom:1px solid #eef0f2;text-align:left;vertical-align:top;} " +
+    "th{background:#fafbfc;color:#444;font-weight:600;white-space:nowrap;} " +
+    "a{color:#2563eb;text-decoration:none;} .num{text-align:right;white-space:nowrap;} " +
+    "tr:hover td{background:#fafbff;} " +
+    ".notice{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;margin:0 0 18px;font-size:12.5px;line-height:1.75;color:#4b5563;}" +
+    "</style></head><body><div class=\"wrap\">" +
+    "<h1>YouTube KOC 候选报告</h1>" +
+    '<p class="sub">生成时间：' + now + " · 共 " + rows.length + " 个频道</p>" +
+    '<div class="notice"><b>关于「地区」这一列怎么看。</b>欧美澳加的 YouTuber 都讲英语，光看语言分不出地区；YouTube 公开接口也不提供任何人的 IP，观众地理分布只有频道主本人在后台能看到。所以这里的地区是用三层可观测信号判出来的：<b>第一层</b>频道 country 字段，创作者自填的所在国，是唯一能当硬数据的信号；<b>第二层</b>文本线索，包括拼写差异（color 对 colour）、货币（$ / C$ / £ / A$）、华氏度（基本只有美国用）、电话区号（+44 / +61 / +353）、外链域名（.ca / .co.uk / .com.au）和城市州名；<b>第三层</b>跨区召回差异，同一批搜索词分别在美区、加区、英区各搜一遍，看这个频道只在哪个区稳定出现。<br><b>置信度分三档。</b>高表示 country 字段明确；中表示 country 缺失或存在冲突，依据内容线索判定；待确认表示信号不足，这里如实标注而不硬归类，避免污染投放决策。<br><b>一个前提必须说清楚。</b>以上三层判定的是「创作者在哪个国家」，不等于「观众在哪个国家」。观众地区公开渠道永远拿不到，所以投放时请在 Google Ads 端用地理定向兜底：广告定向到该频道的版位，同时限制只展示给目标国家用户，非目标地区不计费。这样频道的地区属性就从硬门槛变成了成本变量。</div>' +
+    "<table><thead><tr>" + header.map(h=>"<th>"+h+"</th>").join("") + "</tr></thead><tbody>" + bodyRows + "</tbody></table>" +
+    "</div></body></html>";
+}
+
+function exportReport() {
+  const checked = getCheckedRows();
+  const rows = checked.length ? checked : state.rows;
+  if (!rows.length) { alert("没有可生成报告的结果，请先运行。"); return; }
+  const html = buildReportHTML(rows);
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "Gangstar韩区KOC候选报告.html";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ============ 历史筛选记录 ============ */
+const PLATFORM_LABEL = { mobile:"手游", pc:"PC", console:"主机", any:"不限" };
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch (e) { return []; }
+}
+
+function snapshotFilters() {
+  return {
+    targetGame: $("gameName").value.trim(),
+    targetPlatform: getTargetPlatform(),
+    subsMin: $("subsMin").value,
+    subsMax: $("subsMax").value,
+    activeWindow: $("activeWindow").value,
+    emailOnly: $("emailOnly").value,
+    hangulOnly: $("hangulOnly").value,
+    searchRegion: ($("region") && $("region").value) || "KR",
+    regionFilter: ($("regionFilter") && $("regionFilter").value) || "any",
+    regionConf: ($("regionConf") && $("regionConf").value) || "any",
+    crossCheck: ($("crossCheck") && $("crossCheck").value) || "0",
+    queries: $("queries").value.split("\n").map(s=>s.trim()).filter(Boolean)
+  };
+}
+
+function saveHistory() {
+  if (!state.rows.length) return;
+  const rows = state.rows.map(r => {
+    const a = r.a, avg = r.avg;
+    return {
+      cid: r.cid, title: a.title, subs: a.subs,
+      genres: a.top3_genres.map(g=>GENRE_LABEL[g]),
+      games: (a.top_games||[]).slice(),
+      avg_views: avg.avg_views, avg_n: avg.n,
+      last_video: a.last_video, email: (a.emails||[]).join(" / "),
+      mobile_pct: a.mobile_pct, pc_pct: a.pc_pct||0, console_pct: a.console_pct||0,
+      anime_pct: a.anime_pct, gangstar_pct: a.gangstar_pct, gangstar_hard_pct: a.gangstar_hard_pct,
+      region: (r.rg && r.rg.region) || "", region_conf: (r.rg && r.rg.confidence) || "unknown",
+      region_note: (r.rg && r.rg.note) || "",
+      url: "https://www.youtube.com/channel/" + r.cid
+    };
+  });
+  const rec = {
+    id: Date.now(),
+    time: new Date().toLocaleString("zh-CN"),
+    filters: snapshotFilters(),
+    summary: {
+      candidates: Object.keys(state.candidates).length,
+      analyzed: Object.keys(state.analysis).length,
+      platformExcluded: state.platformExcludedCount,
+      matched: rows.length
+    },
+    rows: rows
+  };
+  const hist = loadHistory();
+  hist.unshift(rec);
+  if (hist.length > 50) hist.length = 50;
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(hist)); }
+  catch (e) { log("历史记录保存失败（可能超出浏览器本地存储上限）", "err"); }
+  renderHistory();
+}
+
+function renderHistory() {
+  const el = $("historyList");
+  if (!el) return;
+  const hist = loadHistory();
+  if (!hist.length) {
+    el.innerHTML = '<p class="sub" style="margin:6px 0">还没有历史记录。运行一次筛选并出表后会自动保存到这里。</p>';
+    return;
+  }
+  el.innerHTML = hist.map((rec, i) => {
+    const f = rec.filters || {};
+    const target = (f.targetGame ? "目标游戏：" + esc(f.targetGame) + " · " : "") + "目标平台：" + (PLATFORM_LABEL[f.targetPlatform] || f.targetPlatform || "不限");
+    const regionDesc = (f.regionFilter && f.regionFilter !== "any")
+      ? " · 地区 " + (REGION_GROUPS[f.regionFilter] ? REGION_GROUPS[f.regionFilter].label : ((COUNTRY_CN[f.regionFilter] || f.regionFilter) + " " + f.regionFilter))
+      : "";
+    const confDesc = (f.regionConf && f.regionConf !== "any") ? " · 地区置信度≥" + (CONF_CN[f.regionConf] || f.regionConf) : "";
+    const filterDesc = "搜索地区 " + (f.searchRegion || "KR") + " · 粉丝 " + f.subsMin + "~" + f.subsMax + " · 活跃 " + f.activeWindow + " 天内" +
+      (f.emailOnly === "1" ? " · 仅邮箱" : "") + (f.queries && f.queries.length ? " · 搜索词 " + f.queries.length + " 个" : "") +
+      regionDesc + confDesc + (f.crossCheck === "1" ? " · 已开跨区校验" : "");
+    const s = rec.summary || {};
+    const headCells = ["用户名","粉丝量","地区","置信度","主要类型","视频类型","均播","平台(手/PC/主机)","邮箱"];
+    const bodyRows = (rec.rows || []).map(r => {
+      return "<tr>" +
+        '<td><a href="' + r.url + '" target="_blank">' + esc(r.title) + "</a></td>" +
+        '<td class="num">' + (r.subs||0).toLocaleString() + "</td>" +
+        "<td>" + esc(r.region ? ((COUNTRY_CN[r.region] || r.region) + " " + r.region) : "未知") + "</td>" +
+        "<td>" + esc(CONF_CN[r.region_conf] || "待确认") + "</td>" +
+        "<td>" + esc((r.genres||[]).join("、")) + "</td>" +
+        "<td>" + esc((r.games||[]).join("、")) + "</td>" +
+        '<td class="num">' + (r.avg_n ? (r.avg_views||0).toLocaleString() : "-") + "</td>" +
+        '<td class="num">' + r.mobile_pct + "%/PC " + r.pc_pct + "%/主机 " + r.console_pct + "%</td>" +
+        "<td>" + (r.email ? esc(r.email) : "-") + "</td>" +
+        "</tr>";
+    }).join("");
+    return '<div class="hist-item" style="border:1px solid var(--border-light);border-radius:10px;margin-bottom:10px;overflow:hidden">' +
+      '<div class="hist-head" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:11px 14px;background:var(--card-alt);cursor:pointer" data-i="' + i + '">' +
+        '<b style="font-size:13px">' + esc(rec.time) + "</b>" +
+        '<span style="font-size:12.5px;color:var(--text-soft)">' + target + "</span>" +
+        '<span class="tag good">筛出 ' + (s.matched||rec.rows.length) + " 个</span>" +
+        (s.platformExcluded ? '<span class="tag warn">平台排除 ' + s.platformExcluded + " 个</span>" : "") +
+        '<span class="spacer"></span>' +
+        '<button class="btn small ghost" data-act="toggle" data-i="' + i + '">查看</button>' +
+        '<button class="btn small ghost" data-act="export" data-i="' + i + '">导出CSV</button>' +
+        '<button class="btn small ghost" data-act="del" data-i="' + i + '">删除</button>' +
+      "</div>" +
+      '<div class="hist-body hidden" data-body="' + i + '" style="padding:12px 14px;border-top:1px solid var(--border-light)">' +
+        '<div style="font-size:12.5px;color:var(--muted);margin-bottom:10px">筛选要求：' + esc(filterDesc) + "<br>候选 " + (s.candidates||0) + " → 分析 " + (s.analyzed||0) + " → 平台排除 " + (s.platformExcluded||0) + " → 筛出 " + (s.matched||rec.rows.length) + "</div>" +
+        '<div class="table-wrap"><table style="min-width:760px"><thead><tr>' + headCells.map(h=>"<th>"+h+"</th>").join("") + "</tr></thead><tbody>" + bodyRows + "</tbody></table></div>" +
+      "</div>" +
+    "</div>";
+  }).join("");
+
+  el.querySelectorAll("[data-act]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const i = parseInt(btn.dataset.i, 10);
+      const act = btn.dataset.act;
+      if (act === "del") {
+        if (!confirm("删除这条历史记录？")) return;
+        const h = loadHistory(); h.splice(i, 1);
+        try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); } catch(e){}
+        renderHistory();
+      } else if (act === "export") {
+        exportHistoryCSV(i);
+      } else if (act === "toggle") {
+        const body = el.querySelector('[data-body="' + i + '"]');
+        if (body) body.classList.toggle("hidden");
+      }
+    });
+  });
+  el.querySelectorAll(".hist-head").forEach(h => {
+    h.addEventListener("click", () => {
+      const i = h.dataset.i;
+      const body = el.querySelector('[data-body="' + i + '"]');
+      if (body) body.classList.toggle("hidden");
+    });
+  });
+}
+
+function historyToCSV(rec) {
+  const header = ["用户名","平台链接","粉丝量","地区","地区置信度","主要游戏类型","视频内容类型","均播","活跃度","邮箱","平台(手/PC/主机)","二次元占比","题材重合"];
+  const lines = [header.join(",")];
+  const cell = (v) => '"' + String(v==null?"":v).replace(/"/g,'""') + '"';
+  for (const r of (rec.rows||[])) {
+    lines.push([
+      r.title, r.url, r.subs,
+      r.region ? ((COUNTRY_CN[r.region] || r.region) + " " + r.region) : "未知",
+      CONF_CN[r.region_conf] || "待确认",
+      (r.genres||[]).join("、"), (r.games||[]).join("、"),
+      r.avg_n ? r.avg_views : "", r.last_video, r.email,
+      r.mobile_pct+"%/PC "+r.pc_pct+"%/主机 "+r.console_pct+"%",
+      r.anime_pct+"%", r.gangstar_pct+"%（硬核"+r.gangstar_hard_pct+"%）"
+    ].map(cell).join(","));
+  }
+  return "\ufeff" + lines.join("\r\n");
+}
+
+function exportHistoryCSV(i) {
+  const rec = loadHistory()[i];
+  if (!rec) { alert("记录不存在。"); return; }
+  const blob = new Blob([historyToCSV(rec)], { type:"text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "历史筛选_" + (rec.filters && rec.filters.targetGame ? rec.filters.targetGame : "记录") + "_" + rec.time.replace(/[/: ]/g,"") + ".csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ============ 运行编排 ============ */
+async function runAll() {
+  if (state.running) return;
+  if (!state.apiKey) { log("请先在上方①处设置 API key", "err"); return; }
+  const queries = $("queries").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  state.running = true;
+  disableButtons(true);
+  try {
+    log("========== 一键运行开始 ==========", "info");
+    await stepSearch(queries);
+    await stepProfiles();
+    await stepDeep();
+    await stepAvgviews();
+    setProgress("筛选出表", 90);
+    renderTable();
+    saveHistory();
+    setProgress("完成", 100);
+    log("========== 完成，共筛出 " + state.rows.length + " 个频道 ==========", "ok");
+  } catch (e) {
+    log("运行中断：" + e.message, "err");
+    setProgress("中断", 0);
+  } finally {
+    state.running = false;
+    disableButtons(false);
+  }
+}
+
+function disableButtons(disabled) {
+  ["btnRunAll","btnStep1","btnStep2","btnStep3","btnStep4","btnStep5"].forEach(id => $(id).disabled = disabled);
+}
+
+async function runStep(n) {
+  if (state.running) return;
+  if (!state.apiKey && n < 5) { log("请先设置 API key", "err"); return; }
+  state.running = true;
+  disableButtons(true);
+  try {
+    if (n === 1) await stepSearch($("queries").value.split("\n").map(s=>s.trim()).filter(Boolean));
+    else if (n === 2) await stepProfiles();
+    else if (n === 3) await stepDeep();
+    else if (n === 4) await stepAvgviews();
+    else if (n === 5) { renderTable(); saveHistory(); setProgress("完成", 100); }
+    markStep(n);
+  } catch (e) {
+    log("步骤" + n + "中断：" + e.message, "err");
+  } finally {
+    state.running = false;
+    disableButtons(false);
+  }
+}
+
+function markStep(n) {
+  const done = {1:state.candidates && Object.keys(state.candidates).length>0, 2:Object.keys(state.profiles).length>0, 3:Object.keys(state.deep).length>0, 4:Object.keys(state.avgviews).length>0, 5:state.rows.length>0};
+  for (let i=1;i<=5;i++) {
+    const el = $("s"+i+"n");
+    if (el) el.className = "step-num" + (done[i] ? " done" : "");
+  }
+}
+
+/* ============ UI 初始化 ============ */
+function initChips() {
+  /* 核心词（游戏名 + 题材）渲染 + 事件绑定 */
+  renderGenreTree();
+  const gn = $("gameNames");
+  if (gn) gn.addEventListener("input", debounce(rebuildQueries, 500));
+  const rb = $("btnRebuildQueries");
+  if (rb) rb.addEventListener("click", rebuildQueries);
+  updateCacheCount();
+}
+
+/* —— 预设词包：主品类 / 副品类 两级折叠 —— */
+function renderPackTree() {
+  const pc = $("packChips");
+  if (!pc) return;
+  pc.innerHTML = Object.keys(PACK_TREE).map(main => {
+    const subs = PACK_TREE[main].subs;
+    const n = Object.keys(subs).length;
+    const chips = Object.keys(subs).map(sub =>
+      '<span class="chip sub" data-pack="' + esc(sub) + '" title="' + esc(subs[sub].slice(0, 4).join(" / ")) + '">' + esc(sub) + "</span>"
+    ).join("");
+    return '<div class="pack-main" data-main="' + esc(main) + '">' +
+             '<div class="pack-main-head">' +
+               '<span class="pack-caret">▶</span>' +
+               '<span class="pack-main-title">' + esc(main) + "</span>" +
+               '<span class="pack-main-desc">' + esc(PACK_TREE[main].desc || "") + "</span>" +
+               '<span class="pack-main-count">' + n + "</span>" +
+             "</div>" +
+             '<div class="pack-subs">' +
+               '<button class="selall" data-selall="' + esc(main) + '">全选该品类</button>' +
+               '<div class="chips">' + chips + "</div>" +
+             "</div>" +
+           "</div>";
+  }).join("");
+
+  pc.querySelectorAll(".pack-main-head").forEach(h => {
+    h.addEventListener("click", () => h.parentElement.classList.toggle("open"));
+  });
+  pc.querySelectorAll(".chip.sub").forEach(c => {
+    c.addEventListener("click", (e) => { e.stopPropagation(); togglePack(c); });
+  });
+  pc.querySelectorAll(".selall").forEach(b => {
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const main = b.dataset.selall;
+      const box = b.parentElement;
+      const chips = [...box.querySelectorAll(".chip.sub")];
+      const allOn = chips.every(c => c.classList.contains("on"));
+      chips.forEach(c => { if (allOn) c.classList.remove("on"); else c.classList.add("on"); });
+      syncQueries();
+    });
+  });
+  /* 默认展开第一个品类，提示可点击 */
+  const first = pc.querySelector(".pack-main");
+  if (first) first.classList.add("open");
+}
+
+function bindPackTools() {
+  const ex = $("btnExpandAll"), co = $("btnCollapseAll"), cl = $("btnClearPacks");
+  if (ex) ex.addEventListener("click", () => document.querySelectorAll("#packChips .pack-main").forEach(m => m.classList.add("open")));
+  if (co) co.addEventListener("click", () => document.querySelectorAll("#packChips .pack-main").forEach(m => m.classList.remove("open")));
+  if (cl) cl.addEventListener("click", () => {
+    document.querySelectorAll("#packChips .chip.sub.on").forEach(c => c.classList.remove("on"));
+    syncQueries();
+    log("已清空预设词包选择", "info");
+  });
+}
+
+function renderUserPacks() {
+  const packs = loadUserPacks();
+  const uc = $("userPackChips");
+  if (!uc) return;
+  const region = ($("region") && $("region").value) || "KR";
+  uc.innerHTML = Object.keys(packs).map(p => {
+    const pack = packs[p];
+    const concept = (pack && pack.conceptZh) || p;
+    return '<span class="chip user" data-upack="' + p + '" title="' + esc(concept) + '">' + esc(p) + ' <span style="opacity:.5">·</span> <span style="opacity:.7;font-size:11px">' + region + '</span><span class="x" data-del="' + p + '">×</span></span>';
+  }).join("");
+  uc.querySelectorAll(".chip").forEach(c => {
+    const name = c.dataset.upack;
+    c.addEventListener("click", (e) => {
+      if (e.target.dataset.del !== undefined) {
+        if (confirm("删除词包「" + name + "」？")) {
+          const p = loadUserPacks(); delete p[name]; saveUserPacks(p); renderUserPacks();
+        }
+        return;
+      }
+      c.classList.toggle("active");
+      addUserPackToQueries(name);
+    });
+  });
+}
+
+function addUserPackToQueries(name) {
+  const packs = loadUserPacks();
+  const pack = packs[name] || {};
+  const region = ($("region") && $("region").value) || "KR";
+  let qs = [];
+  // 优先级：legacy 已有搜索词 > 中文概念 + 翻译生成
+  if (pack.legacy && pack.legacy.length) {
+    qs = pack.legacy.slice();
+    log("词包「" + name + "」使用已有 " + qs.length + " 个搜索词（legacy）", "info");
+  } else if (pack.conceptZh) {
+    const r = translateZhToQueries(pack.conceptZh, region);
+    qs = r.queries;
+    if (r.hits.length) {
+      log("词包「" + name + "」按 " + region + " 翻译生成 " + qs.length + " 个搜索词（命中：" + r.hits.join("、") + "）", "info");
+      if (r.misses.length) log("⚠ 这些词没找到对应翻译，已原样保留、不会拼韩语后缀：" + r.misses.join("、") + "。建议改成更通用的品类词（如「二次元」「开放世界」）或直接在下方搜索词框手写韩语。", "warn");
+    } else {
+      log("⚠ 词包「" + name + "」没有任何词命中词典，已原样保留：" + r.misses.join("、") + "。韩区搜索用中/英文裸词基本搜不到东西，建议换成通用品类词，或直接在搜索词框手写韩语。", "warn");
+    }
+  } else {
+    log("词包「" + name + "」无内容", "err");
+    return;
+  }
+  const box = $("queries");
+  const lines = box.value.split("\n").map(s=>s.trim()).filter(Boolean);
+  const set = new Set(lines);
+  for (const q of qs) set.add(q);
+  box.value = Array.from(set).join("\n");
+}
+
+function showPackDialog(name, initial) {
+  const bg = document.createElement("div");
+  bg.className = "modal-bg";
+  const isEdit = !!name;
+  const title = isEdit ? "编辑词包" : "新建词包";
+  const packs = loadUserPacks();
+  const cur = (isEdit && packs[name]) || {};
+  const initialConcept = cur.conceptZh || (name || "");
+  const initialRegion = ($("region") && $("region").value) || "KR";
+  bg.innerHTML = '<div class="modal" style="max-width:620px">'
+    + '<h3>' + title + '</h3>'
+    + '<label>词包名称（仅用于称呼，可填中文名如 OneState、RPG、二次元MMO）</label>'
+    + '<input id="mpName" value="' + esc(name||"") + '" placeholder="例如：OneState、黑帮题材、二次元MMO">'
+    + '<label>概念词（支持中文或英文，多个用「、」或逗号分隔）</label>'
+    + '<input id="mpZh" value="' + esc(initialConcept) + '" placeholder="例如：onestate、原神、开放世界、gangstar">'
+    + '<div style="font-size:12.5px;font-weight:600;margin:10px 0 4px;color:var(--text-soft)">翻译预览（按当前区域「<b id="mpRegion" style="color:var(--brand)">' + initialRegion + '</b>」自动生成）：</div>'
+    + '<div class="preview-box" id="mpPreview">点击下方按钮生成翻译结果</div>'
+    + '<div style="display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap">'
+    + '<button class="btn small green" id="mpGen">⚙ 按当前区域自动生成</button>'
+    + '<span style="font-size:12px;color:var(--muted)" id="mpHint"></span>'
+    + '</div>'
+    + '<div class="modal-actions"><button class="btn ghost" id="mpCancel">取消</button><button class="btn" id="mpOk">' + (isEdit?"保存":"新建") + '</button></div>'
+    + '</div>';
+  document.body.appendChild(bg);
+
+  const regionEl = bg.querySelector("#mpRegion");
+  const zhEl = bg.querySelector("#mpZh");
+  const previewEl = bg.querySelector("#mpPreview");
+  const hintEl = bg.querySelector("#mpHint");
+
+  let lastResult = null; /* 保存最近一次翻译结果，用于保存时校验 */
+
+  const refreshRegion = () => {
+    const r = ($("region") && $("region").value) || "KR";
+    regionEl.textContent = r;
+  };
+  const regionSel = $("region");
+  regionSel && regionSel.addEventListener("change", refreshRegion);
+
+  const regenerate = () => {
+    const r = ($("region") && $("region").value) || "KR";
+    refreshRegion();
+    const zh = zhEl.value.trim();
+    if (!zh) { 
+      previewEl.innerHTML = '<span style="opacity:.5">请先输入概念词</span>'; 
+      hintEl.textContent = ""; 
+      lastResult = null; 
+      return; 
+    }
+    const result = translateZhToQueries(zh, r);
+    lastResult = result;
+
+    /* 构建带颜色的预览 */
+    let html = '';
+    if (result.hits.length) {
+      html += '<div style="margin-bottom:6px"><span class="hit">✓ 命中词典：' + result.hits.join("、") + '</span></div>';
+    }
+    if (result.misses.length) {
+      html += '<div style="margin-bottom:6px"><span class="miss">✗ 未翻译（保持原文）：' + result.misses.join("、") + '</span></div>';
+    }
+    /* 显示生成的搜索词（最多显示前 15 条）*/
+    const displayQueries = result.queries.slice(0, 15);
+    html += '<div style="margin-top:8px;font-size:12px;color:var(--muted)">生成 ' + result.queries.length + ' 个搜索词（前 15 条）：</div>';
+    html += '<div style="background:#fff;border-radius:6px;padding:8px;margin-top:4px;font-size:12.5px;line-height:1.7;max-height:140px;overflow-y:auto">' + displayQueries.map(q => '<div>' + esc(q) + '</div>').join('') + '</div>';
+
+    if (result.queries.length > 15) {
+      html += '<div style="font-size:11px;color:var(--muted);margin-top:4px">... 还有 ' + (result.queries.length - 15) + ' 个</div>';
+    }
+
+    previewEl.innerHTML = html;
+
+    /* 状态提示 */
+    if (r === "KR" || r === "JP") {
+      if (result.misses.length === 0) {
+        hintEl.innerHTML = '<span style="color:var(--accent);font-weight:600">✓ 全部翻译为' + (r==="KR"?"韩语":"日语") + '搜索词，可直接使用</span>';
+      } else {
+        hintEl.innerHTML = '<span style="color:var(--danger);font-weight:600">⚠ 警告：' + result.misses.length + ' 个词未翻译成' + (r==="KR"?"韩语":"日语") + '！英文搜索词在 YouTube ' + (r==="KR"?"韩国区":"日本区") + '搜不到内容。请改用中文概念词或确认词典已收录。</span>';
+      }
+    } else {
+      hintEl.innerHTML = '<span style="color:var(--accent)">共生成 ' + result.queries.length + ' 个搜索词</span> ' + (result.hits.length ? '命中：' + result.hits.join("、") : '') + (result.misses.length ? '；未翻译：' + result.misses.join("、") : '');
+    }
+  };
+
+  bg.querySelector("#mpGen").onclick = regenerate;
+
+  // 初始化：若编辑老格式词包，反显 legacy；若新格式则反显概念并触发一次生成
+  if (cur.legacy && cur.legacy.length) {
+    previewEl.innerHTML = '<div>检测到老版本词包（直接保存了 ' + cur.legacy.length + ' 个搜索词）<br><span style="font-size:12px;color:var(--muted)">点击「自动生成」可按当前区域重译为新的概念词格式</span></div>';
+    lastResult = { queries: cur.legacy, hits: [], misses: [] };
+  } else if (initialConcept) {
+    regenerate();
+  }
+
+  bg.querySelector("#mpCancel").onclick = () => { bg.remove(); regionSel && regionSel.removeEventListener("change", refreshRegion); };
+  bg.querySelector("#mpOk").onclick = () => {
+    const n = bg.querySelector("#mpName").value.trim();
+    const z = bg.querySelector("#mpZh").value.trim();
+    if (!n) { alert("请填写词包名称"); return; }
+    if (!z) { alert("请填写概念词（中文或英文）"); return; }
+
+    /* KR/JP 区域安全检查：如果有未翻译的英文词，强制拦截 */
+    const r = ($("region") && $("region").value) || "KR";
+    if ((r === "KR" || r === "JP") && lastResult && lastResult.misses.length > 0) {
+      const confirmMsg = "⚠️ 当前区域是「" + r + "」，以下 " + lastResult.misses.length + " 个词未能翻译成" + (r==="KR"?"韩语":"日语") + "：\n\n  " + lastResult.misses.join("、") + "\n\n这些词会以原文形式作为搜索词，在 YouTube " + (r==="KR"?"韩国区":"日本区") + " 基本搜不到任何内容。\n\n建议：改用中文概念词（如「开放世界」而非「open world」），或联系开发者把这个词加进词典。\n\n确定要继续保存吗？";
+      if (!confirm(confirmMsg)) return;
+    }
+
+    const p = loadUserPacks();
+    const qs = lastResult ? lastResult.queries : [];
+    if (isEdit && name !== n) { delete p[name]; }
+    p[n] = { conceptZh: z, legacy: qs.length ? qs : undefined };
+    saveUserPacks(p);
+    renderUserPacks();
+    bg.remove();
+    regionSel && regionSel.removeEventListener("change", refreshRegion);
+  };
+}
+
+function togglePack(chip) {
+  chip.classList.toggle("on");
+  syncQueries();
+}
+
+function syncQueries() {
+  const selected = [...document.querySelectorAll("#packChips .chip.on")].map(c => c.dataset.pack);
+  const set = new Set();
+  for (const p of selected) for (const q of PRESET_PACKS[p]) set.add(q);
+  const manual = $("queries").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  // 保留手动输入中不属于任何已选词包的词
+  const autoSet = new Set();
+  for (const p of Object.keys(PRESET_PACKS)) for (const q of PRESET_PACKS[p]) autoSet.add(q);
+  const kept = manual.filter(q => !autoSet.has(q));
+  const merged = [...set, ...kept];
+  $("queries").value = merged.join("\n");
+}
+
+function saveKey() {
+  state.apiKey = $("apiKey").value.trim();
+  if (state.apiKey) {
+    try { localStorage.setItem("yt_koc_api_key", state.apiKey); } catch(e){}
+    $("keyStatus").textContent = "已保存密钥，已保存在本机浏览器本地。";
+  } else {
+    $("keyStatus").textContent = "密钥为空，未保存。";
+  }
+}
+
+function loadKey() {
+  try { const k = localStorage.getItem("yt_koc_api_key"); if (k) { state.apiKey = k; $("apiKey").value = k; $("keyStatus").textContent = "已从浏览器本地载入密钥。"; } } catch(e){}
+}
+
+function clearKey() {
+  state.apiKey = "";
+  $("apiKey").value = "";
+  try { localStorage.removeItem("yt_koc_api_key"); } catch(e){}
+  $("keyStatus").textContent = "已清除密钥。";
+}
+
+function bindEvents() {
+  $("btnSaveKey").addEventListener("click", saveKey);
+  $("btnClearKey").addEventListener("click", clearKey);
+  $("apiKey").addEventListener("change", saveKey);
+  const bAddPack = $("btnAddPack");
+  if (bAddPack) bAddPack.addEventListener("click", () => showPackDialog());
+  $("btnClearCache").addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!confirm("清空所有搜索结果缓存？下次再跑相同搜索词会重新消耗配额。词包不会被删除。")) return;
+    localStorage.removeItem(CACHE_KEY);
+    updateCacheCount();
+    alert("已清空。");
+  });
+  const bManagePacks = $("btnManagePacks");
+  if (bManagePacks) bManagePacks.addEventListener("click", () => {
+    const p = loadUserPacks();
+    const names = Object.keys(p);
+    if (!names.length) { alert("还没有自建词包。点击「＋ 新建词包」创建一个。"); return; }
+    const list = names.map((n,i) => {
+      const pack = p[n];
+      const z = (pack && pack.conceptZh) ? pack.conceptZh : "(纯 legacy)";
+      const w = (pack && pack.legacy) ? pack.legacy.length : 0;
+      return (i+1) + ". " + n + " · 中文：「" + z + "」 · 搜索词 " + w + " 个";
+    }).join("\n");    const choice = prompt("管理我的词包\n\n" + list + "\n\n输入词包名可编辑；输入「删除 词包名」可删除；输入「全部重译」会把所有词包重新按当前区域生成预填入搜索词区；留空关闭。");
+    if (!choice) return;
+    if (choice === "全部重译") {
+      const region = ($("region") && $("region").value) || "KR";
+      const lines = $("queries").value.split("\n").map(s=>s.trim()).filter(Boolean);
+      const set = new Set(lines);
+      let cnt = 0;
+      for (const n of names) {
+        const pack = p[n];
+        if (!pack || !pack.conceptZh) continue;
+        const r = translateZhToQueries(pack.conceptZh, region);
+        for (const q of r.queries) set.add(q);
+        cnt++;
+      }
+      $("queries").value = Array.from(set).join("\n");
+      alert("已按 " + region + " 重新生成 " + cnt + " 个词包（共填入 " + $("queries").value.split("\n").filter(Boolean).length + " 行搜索词）。");
+      return;
+    }
+    if (choice.startsWith("删除 ")) { const n = choice.slice(3).trim(); if (p[n]) { delete p[n]; saveUserPacks(p); renderUserPacks(); alert("已删除「"+n+"」"); } else alert("找不到该词包"); return; }
+    if (p[choice]) { showPackDialog(choice); return; }
+    alert("未找到词包：「"+choice+"」");
+  });
+  const regionSel = $("region");
+  if (regionSel) regionSel.addEventListener("change", renderUserPacks);
+  $("btnRunAll").addEventListener("click", runAll);
+  $("btnToggleSteps").addEventListener("click", () => $("stepsPanel").classList.toggle("hidden"));
+  $("btnStep1").addEventListener("click", () => runStep(1));
+  $("btnStep2").addEventListener("click", () => runStep(2));
+  $("btnStep3").addEventListener("click", () => runStep(3));
+  $("btnStep4").addEventListener("click", () => runStep(4));
+  $("btnStep5").addEventListener("click", () => runStep(5));
+  $("btnClearAll").addEventListener("click", () => {
+    if (!confirm("确定清空本次所有结果？")) return;
+    state.candidates = {}; state.profiles = {}; state.deep = {}; state.analysis = {}; state.avgviews = {}; state.rows = [];
+    state.quotaUsed = 0; state.sortCol = null;
+    $("log").innerHTML = ""; $("resultCard").classList.add("hidden");
+    setProgress("未开始", 0); for (let i=1;i<=5;i++){ const el=$("s"+i+"n"); if(el) el.className="step-num"; }
+    log("已清空所有结果。", "info");
+  });
+  $("btnExportCSV").addEventListener("click", () => {
+    const rows = getCheckedRows();
+    if (!rows.length) { alert("请先在表格中勾选要导出的频道。"); return; }
+    downloadCSV(rows, "KOC候选表_已勾选.csv");
+  });
+  $("btnExportAllCSV").addEventListener("click", () => {
+    if (!state.rows.length) { alert("没有可导出的结果，请先运行。"); return; }
+    downloadCSV(state.rows, "KOC候选表_全部.csv");
+  });
+  $("btnCopyLinks").addEventListener("click", copyLinks);
+  $("btnCopyTable").addEventListener("click", copyTable);
+  $("btnReport").addEventListener("click", exportReport);
+  $("btnSelectAll").addEventListener("click", () => {
+    state.selectAll = !state.selectAll;
+    document.querySelectorAll("#resultBody .rowchk").forEach(c => {
+      c.checked = state.selectAll;
+      c.closest("tr").classList.toggle("selected", state.selectAll);
+    });
+  });
+  $("btnClearHistory").addEventListener("click", () => {
+    if (!confirm("清空全部历史筛选记录？此操作不可恢复。")) return;
+    try { localStorage.removeItem(HISTORY_KEY); } catch(e){}
+    renderHistory();
+    log("已清空全部历史筛选记录。", "info");
+  });
+  /* 搜索地区联动「只保留韩文标题频道」：只有韩文区需要这道过滤，
+     切到英语区时如果还开着，会把当地频道全部挡掉。 */
+  const regionSel2 = $("region");
+  if (regionSel2) regionSel2.addEventListener("change", () => {
+    const r = regionSel2.value;
+    const ho = $("hangulOnly");
+    if (!ho) return;
+    if (r === "KR") {
+      if (ho.value !== "1") { ho.value = "1"; log("搜索地区切回韩国，「只保留韩文标题频道」已自动打开。", "info"); }
+    } else if (ho.value === "1") {
+      ho.value = "0";
+      log("搜索地区切到 " + r + "，「只保留韩文标题频道」已自动关闭——否则当地频道会被这道过滤全挡掉。", "warn");
+    }
+  });
+  /* 地区筛选条件变化时立即重算结果表（纯本地计算，不消耗配额） */
+  ["regionFilter","regionConf"].forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener("change", () => {
+      if (!Object.keys(state.analysis).length) return;
+      renderTable();
+      log("已按新的地区条件重算结果表（本地计算，未消耗配额）。", "info");
+    });
+  });
+}
+
+initChips();
+loadKey();
+bindEvents();
+renderHistory();
+log("工具已就绪。请先设置 API key，选择搜索词，点击「一键运行」。", "info");
+
+/* ============ API Key 获取教程展开/收起 ============ */
+(function(){
+  const link = document.getElementById('tutorialToggle');
+  const panel = document.getElementById('tutorialPanel');
+  if (!link || !panel) return;
+  link.addEventListener('click', function(e){
+    e.preventDefault();
+    panel.classList.toggle('hidden');
+    const shown = !panel.classList.contains('hidden');
+    link.textContent = shown ? '📘 收起教程' : '📘 如何获取 API Key？点此查看 7 步教程';
+    if (shown) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+})();
+</script>
+</body>
+</html>
